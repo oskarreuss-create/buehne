@@ -74,7 +74,7 @@ public final class LibmpvEngine: PlaybackEngine {
         let peak = String(Int(max(203, displayPeakNits.rounded())))
         let opened = err.withUnsafeMutableBufferPointer { buf in
             peak.withCString { peakC in
-                buehne_mpv_open(url.path, peakC, buf.baseAddress, Int32(buf.count))
+                buehne_mpv_open(url.isFileURL ? url.path : url.absoluteString, peakC, buf.baseAddress, Int32(buf.count))
             }
         }
         guard let opened else {
