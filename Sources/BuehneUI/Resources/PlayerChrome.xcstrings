@@ -1,0 +1,83 @@
+{
+  "sourceLanguage": "en",
+  "version": "1.0",
+  "strings": {
+    "openFile": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Open File…" } },
+        "de": { "stringUnit": { "state": "translated", "value": "Datei öffnen…" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Ouvrir un fichier…" } },
+        "it": { "stringUnit": { "state": "translated", "value": "Apri file…" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Открыть файл…" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Abrir archivo…" } }
+      }
+    },
+    "minimize": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Minimize" } },
+        "de": { "stringUnit": { "state": "translated", "value": "Minimieren" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Réduire" } },
+        "it": { "stringUnit": { "state": "translated", "value": "Riduci a icona" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Свернуть" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Minimizar" } }
+      }
+    },
+    "closeWindow": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Close" } },
+        "de": { "stringUnit": { "state": "translated", "value": "Schließen" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Fermer" } },
+        "it": { "stringUnit": { "state": "translated", "value": "Chiudi" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Закрыть" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Cerrar" } }
+      }
+    },
+    "fullScreen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Full Screen" } },
+        "de": { "stringUnit": { "state": "translated", "value": "Vollbild" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Plein écran" } },
+        "it": { "stringUnit": { "state": "translated", "value": "Schermo intero" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Полный экран" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Pantalla completa" } }
+      }
+    },
+    "alwaysOnTop": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Always on Top" } },
+        "de": { "stringUnit": { "state": "translated", "value": "Immer im Vordergrund" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Toujours au premier plan" } },
+        "it": { "stringUnit": { "state": "translated", "value": "Sempre in primo piano" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Поверх всех окон" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Siempre visible" } }
+      }
+    },
+    "crop": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Crop" } },
+        "de": { "stringUnit": { "state": "translated", "value": "Zuschneiden" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Recadrage" } },
+        "it": { "stringUnit": { "state": "translated", "value": "Ritaglio" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Кадрирование" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Recorte" } }
+      }
+    },
+    "timeline": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Playback position" } },
+        "de": { "stringUnit": { "state": "translated", "value": "Wiedergabeposition" } },
+        "fr": { "stringUnit": { "state": "translated", "value": "Position de lecture" } },
+        "it": { "stringUnit": { "state": "translated", "value": "Posizione di riproduzione" } },
+        "ru": { "stringUnit": { "state": "translated", "value": "Позиция воспроизведения" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Posición de reproducción" } }
+      }
+    }
+  }
+}

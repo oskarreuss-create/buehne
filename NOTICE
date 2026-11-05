@@ -1,0 +1,9 @@
+Required Notice: Copyright (c) 2026 Oskar Reus (info@oskarreus.ch)
+
+BÜHNE is licensed under the PolyForm Noncommercial License 1.0.0 (see LICENSE).
+
+BÜHNE does not bundle third-party code. It links dynamically at build and run time
+against libmpv (installed separately, e.g. `brew install mpv`), which is distributed under
+its own license (LGPL-2.1-or-later, or GPL-2.0-or-later depending on how it was built)
+together with FFmpeg and other components. Those licenses apply to libmpv and are not
+changed by this repository. STRÖM is a separate program with its own license.

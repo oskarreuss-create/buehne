@@ -1,0 +1,14 @@
+.build/
+.swiftpm/
+*.xcuserstate
+DerivedData/
+*.app
+/tmp-selfcheck/
+
+# internal, not for publication
+strom-src/
+PROMPT.md
+STROM_GUIDE.md
+DESIGN_AUDIT.md
+reference/
+build/
