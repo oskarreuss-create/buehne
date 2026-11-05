@@ -361,7 +361,7 @@ public struct PlayerRootView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .clipShape(RoundedRectangle(cornerRadius: BuehneLayout.welcomeRadius, style: .continuous))
-        .background(WindowDragArea())
+        .background(WindowDragArea().clipShape(RoundedRectangle(cornerRadius: BuehneLayout.welcomeRadius, style: .continuous)))
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea()
     }
