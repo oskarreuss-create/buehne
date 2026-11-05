@@ -6,6 +6,13 @@ public enum FirstRunStore {
     public static let version = "1"
     static let acceptedKey = "buehne.firstRun.accepted"
     static let shortcutOfferedKey = "buehne.firstRun.shortcutOffered"
+    static let shortcutMadeKey = "buehne.firstRun.shortcutMade"
+    /// Reading the desktop makes macOS ask for permission, so only someone who has a shortcut goes there.
+    /// Installs from before this key existed count as having one if the question was already answered.
+    static var hasShortcut: Bool {
+        let defaults = UserDefaults.standard
+        return defaults.object(forKey: shortcutMadeKey) as? Bool ?? defaults.bool(forKey: shortcutOfferedKey)
+    }
     public static var accepted: Bool { UserDefaults.standard.string(forKey: acceptedKey) == version }
 }
 
@@ -38,6 +45,12 @@ public enum InstallHelper {
     /// shows the plain, system-tinted app icon (grey). On every launch from the final place, find shortcuts on the
     /// desktop that point at this app and put the glass icon back where it is missing.
     public static func repairShortcutIcons() {
+        guard FirstRunStore.hasShortcut else { return }
+        // Off the main thread: a permission dialog must never hold the player back.
+        DispatchQueue.global(qos: .utility).async { repairNow() }
+    }
+
+    private static func repairNow() {
         let path = Bundle.main.bundlePath
         guard !path.hasPrefix("/Volumes/"), !path.contains("AppTranslocation"),
               let icon = Bundle.main.url(forResource: "BUEHNE-icon-glass", withExtension: "icns").flatMap({ NSImage(contentsOf: $0) }),
@@ -265,7 +278,9 @@ struct FirstRunView: View {
         defaults.set(FirstRunStore.version, forKey: FirstRunStore.acceptedKey)
         if !defaults.bool(forKey: FirstRunStore.shortcutOfferedKey) {
             defaults.set(true, forKey: FirstRunStore.shortcutOfferedKey)
-            if shortcutTick && InstallHelper.canMakeDesktopShortcut { InstallHelper.createDesktopShortcut() }
+            let make = shortcutTick && InstallHelper.canMakeDesktopShortcut
+            defaults.set(make, forKey: FirstRunStore.shortcutMadeKey)
+            if make { InstallHelper.createDesktopShortcut() }
         }
         onFinish()
     }

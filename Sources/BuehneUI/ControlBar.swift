@@ -96,6 +96,7 @@ struct ControlBar: View {
             .padding(.horizontal, px(6))
             .background(BarDragHandle(onMove: onMove, onEnd: onMoveEnd))
         }
+        .environment(\.buehneBarDrag, BarDragActions(onMove: onMove, onEnd: onMoveEnd))
         .frame(height: CGFloat(BarScale.hitSide(32, scale: barScale)) + px(2))
         .frame(width: barWidth > 0 ? barWidth : px(BuehneLayout.controlWidth))
         .foregroundStyle(isLight ? Color.black : Color.white)
@@ -200,7 +201,8 @@ struct ControlBar: View {
         SeekHoldButton(glyph: glyph, label: label, delta: delta, compact: compact) { committed in
             session.seek(by: committed)
         } preview: { offset in
-            scrubTime = max(0, session.snapshot.currentTime + offset)
+            // Offset 0 ends the preview: a value left here would freeze the slider and the clock.
+            scrubTime = offset == 0 ? nil : max(0, session.snapshot.currentTime + offset)
         }
     }
 }

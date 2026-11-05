@@ -17,6 +17,24 @@ if args.first == "--session" {
     }
     try await Task.sleep(for: .seconds(4))
     report("opened")
+    if args.count > 1, args[1] == "--watch" {
+        // Plain viewing: report every jump of the clock that is not the normal forward march.
+        let minutes = Double(args.count > 2 ? args[2] : "5") ?? 5
+        if args.count > 3, let start = Double(args[3]) { session.seek(to: start); try await Task.sleep(for: .seconds(3)) }
+        var last = session.snapshot.currentTime
+        var lastAt = Date()
+        let end = Date().addingTimeInterval(minutes * 60)
+        while Date() < end {
+            try await Task.sleep(for: .milliseconds(250))
+            let now = session.snapshot.currentTime
+            let expected = Date().timeIntervalSince(lastAt)
+            if abs((now - last) - expected) > 1.5 { print(String(format: "JUMP %.1f -> %.1f in %.2fs", last, now, expected)) }
+            last = now
+            lastAt = Date()
+        }
+        report("end")
+        exit(0)
+    }
     for raw in args.dropFirst() {
         let wanted = Double(raw) ?? 0
         session.seek(to: wanted >= 0 ? wanted : (session.streamAllowed ?? 0) + wanted)

@@ -4,6 +4,27 @@ import Testing
 import BuehneUI
 
 @MainActor
+private func mouseEvent(_ type: NSEvent.EventType, x: CGFloat = 16, y: CGFloat = 16) -> NSEvent {
+    NSEvent.mouseEvent(
+        with: type,
+        location: NSPoint(x: x, y: y),
+        modifierFlags: [],
+        timestamp: 0,
+        windowNumber: 0,
+        context: nil,
+        eventNumber: 1,
+        clickCount: 1,
+        pressure: 1
+    )!
+}
+
+@MainActor
+private func click(_ view: BarHitView) {
+    view.mouseDown(with: mouseEvent(.leftMouseDown))
+    view.mouseUp(with: mouseEvent(.leftMouseUp))
+}
+
+@MainActor
 private func mouseDownEvent() -> NSEvent {
     NSEvent.mouseEvent(
         with: .leftMouseDown,
@@ -62,9 +83,8 @@ private func mouseDownEvent() -> NSEvent {
         floating = FloatingApply.toggled(floating)
         count += 1
     }
-    let down = mouseDownEvent()
-    view.mouseDown(with: down)
-    view.mouseDown(with: down)
+    click(view)
+    click(view)
     #expect(count == 2)
     #expect(floating == false)
 }
@@ -74,11 +94,33 @@ private func mouseDownEvent() -> NSEvent {
     var open = false
     let view = BarHitView(frame: NSRect(x: 0, y: 0, width: 32, height: 32))
     view.onDown = { open = SettingsClick.afterGear(open: open) }
-    let down = mouseDownEvent()
-    view.mouseDown(with: down)
+    click(view)
     #expect(open)
-    view.mouseDown(with: down)
+    click(view)
     #expect(!open)
+}
+
+@MainActor
+@Test func pressThatMovesDragsTheBarInsteadOfClicking() {
+    var fires = 0
+    var moved = CGSize.zero
+    var ended = 0
+    let view = BarHitView(frame: NSRect(x: 0, y: 0, width: 32, height: 32))
+    view.onDown = { fires += 1 }
+    view.onDrag = { moved = $0 }
+    view.onDragEnd = { ended += 1 }
+    view.mouseDown(with: mouseEvent(.leftMouseDown, x: 10, y: 10))
+    view.mouseDragged(with: mouseEvent(.leftMouseDragged, x: 60, y: 10))
+    view.mouseUp(with: mouseEvent(.leftMouseUp, x: 60, y: 10))
+    #expect(fires == 0)
+    #expect(moved.width == 50)
+    #expect(ended == 1)
+    // A tiny wobble is still a click.
+    view.mouseDown(with: mouseEvent(.leftMouseDown, x: 10, y: 10))
+    view.mouseDragged(with: mouseEvent(.leftMouseDragged, x: 12, y: 10))
+    view.mouseUp(with: mouseEvent(.leftMouseUp, x: 12, y: 10))
+    #expect(fires == 1)
+    #expect(ended == 1)
 }
 @MainActor
 @Test func hoverTrackerInstallsEnteredExitedAndMoved() {

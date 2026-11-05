@@ -3,10 +3,22 @@ import BuehneCore
 import SwiftUI
 
 /// Fixed hit target. The glyph may scale; this view does not, so the hit rect stays put.
+/// A press that stays put is a click (fires on release, or after a short hold for press-and-hold buttons);
+/// a press that moves drags the whole control bar instead. Only the seek slider drags in place.
 public final class BarHitView: NSView {
     public var onDown: () -> Void = {}
     public var onUp: () -> Void = {}
     public var onHover: (Bool) -> Void = { _ in }
+    public var onDrag: (CGSize) -> Void = { _ in }
+    public var onDragEnd: () -> Void = {}
+
+    static let dragThreshold: CGFloat = 4
+    static let holdDelay: TimeInterval = 0.18
+
+    private var origin: NSPoint?
+    private var dragging = false
+    private var fired = false
+    private var holdWork: DispatchWorkItem?
 
     public override var isOpaque: Bool { false }
     public override var mouseDownCanMoveWindow: Bool { false }
@@ -17,12 +29,44 @@ public final class BarHitView: NSView {
 
     public override func mouseDown(with event: NSEvent) {
         guard BarHitPolicy.firesOnMouseDown else { return }
-        onDown()
+        origin = event.locationInWindow
+        dragging = false
+        fired = false
+        holdWork?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, !self.dragging, !self.fired else { return }
+            self.fired = true
+            self.onDown()
+        }
+        holdWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.holdDelay, execute: work)
     }
 
-    public override func mouseDragged(with event: NSEvent) {}
+    public override func mouseDragged(with event: NSEvent) {
+        guard let origin else { return }
+        let p = event.locationInWindow
+        let delta = CGSize(width: p.x - origin.x, height: origin.y - p.y)
+        if !dragging {
+            guard hypot(delta.width, delta.height) > Self.dragThreshold else { return }
+            dragging = true
+            holdWork?.cancel()
+            if fired { onUp() }
+        }
+        onDrag(delta)
+    }
 
     public override func mouseUp(with event: NSEvent) {
+        holdWork?.cancel()
+        defer {
+            origin = nil
+            dragging = false
+            fired = false
+        }
+        if dragging {
+            onDragEnd()
+            return
+        }
+        if !fired { onDown() }
         onUp()
     }
 
@@ -46,6 +90,8 @@ struct BarHitTarget: NSViewRepresentable {
     @Binding var hovering: Bool
     var onDown: () -> Void
     var onUp: () -> Void = {}
+    var onDrag: (CGSize) -> Void = { _ in }
+    var onDragEnd: () -> Void = {}
 
     func makeNSView(context: Context) -> BarHitView {
         let view = BarHitView(frame: NSRect(x: 0, y: 0, width: side, height: side))
@@ -56,7 +102,25 @@ struct BarHitTarget: NSViewRepresentable {
         view.setFrameSize(NSSize(width: side, height: side))
         view.onDown = onDown
         view.onUp = onUp
+        view.onDrag = onDrag
+        view.onDragEnd = onDragEnd
         view.onHover = { hovering = $0 }
+    }
+}
+
+struct BarDragActions: @unchecked Sendable {
+    var onMove: (CGSize) -> Void = { _ in }
+    var onEnd: () -> Void = {}
+}
+
+private struct BarDragKey: EnvironmentKey {
+    static let defaultValue = BarDragActions()
+}
+
+extension EnvironmentValues {
+    var buehneBarDrag: BarDragActions {
+        get { self[BarDragKey.self] }
+        set { self[BarDragKey.self] = newValue }
     }
 }
 
@@ -67,6 +131,7 @@ struct BarIconButton<Icon: View>: View {
     var onUp: () -> Void = {}
     @ViewBuilder var icon: () -> Icon
     @Environment(\.buehneBarScale) private var barScale
+    @Environment(\.buehneBarDrag) private var barDrag
     @State private var hovering = false
     @State private var showTip = false
     @State private var tipTask: Task<Void, Never>?
@@ -80,7 +145,7 @@ struct BarIconButton<Icon: View>: View {
             .allowsHitTesting(false)
             .frame(width: side, height: side)
             .contentShape(Rectangle())
-            .overlay(BarHitTarget(side: side, hovering: $hovering, onDown: action, onUp: onUp))
+            .overlay(BarHitTarget(side: side, hovering: $hovering, onDown: action, onUp: onUp, onDrag: barDrag.onMove, onDragEnd: barDrag.onEnd))
             .overlay(alignment: .top) {
                 if showTip && !label.isEmpty {
                     Text(label)
