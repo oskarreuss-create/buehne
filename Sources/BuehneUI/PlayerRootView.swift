@@ -362,6 +362,7 @@ public struct PlayerRootView: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: BuehneLayout.welcomeRadius, style: .continuous))
         .background(WindowDragArea().clipShape(RoundedRectangle(cornerRadius: BuehneLayout.welcomeRadius, style: .continuous)))
+        .overlay(alignment: .topLeading) { WelcomeWindowButtons().padding(.leading, 22).padding(.top, 18) }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea()
     }

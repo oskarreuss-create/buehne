@@ -54,10 +54,16 @@ struct WindowChrome: NSViewRepresentable {
         // rim at its own corner radius behind the card. So the welcome state is a borderless window; once a
         // video is loaded the window is a normal titled one again (full screen needs it).
         let welcome = !(videoWidth > 1 && videoHeight > 1)
+        // Changing the style mask rebuilds the frame view; doing it inside viewDidMoveToWindow or layout
+        // aborts in AppKit (crash when a file is opened at launch), so it runs on the next run-loop turn.
         if !window.styleMask.contains(.fullScreen), window.styleMask.contains(.titled) == welcome {
-            window.styleMask = welcome
-                ? [.borderless, .resizable]
-                : [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
+            DispatchQueue.main.async { [weak window] in
+                guard let window, !window.styleMask.contains(.fullScreen),
+                      window.styleMask.contains(.titled) == welcome else { return }
+                window.styleMask = welcome
+                    ? [.borderless, .closable, .miniaturizable, .resizable]
+                    : [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
+            }
         }
         window.isReleasedWhenClosed = false
         window.level = alwaysOnTop ? .floating : .normal
