@@ -160,12 +160,15 @@ struct FirstRunView: View {
             Text(pack.language).font(.system(size: 13)).foregroundStyle(.secondary)
             Picker("", selection: $language) { ForEach(FirstRunTexts.languages, id: \.code) { Text($0.name).tag($0.code) } }
                 .labelsHidden().pickerStyle(.menu).fixedSize()
-            if InstallHelper.canMakeDesktopShortcut {
-                Toggle(pack.shortcut, isOn: $shortcutTick).toggleStyle(.checkbox)
-            }
             Spacer()
             Divider().opacity(0.4)
-            HStack { Spacer(); Button("→") { step = 2 }.buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction) }
+            HStack {
+                if InstallHelper.canMakeDesktopShortcut {
+                    Toggle(pack.shortcut, isOn: $shortcutTick).toggleStyle(.checkbox)
+                }
+                Spacer()
+                Button("→") { step = 2 }.buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction)
+            }
         }
     }
 
