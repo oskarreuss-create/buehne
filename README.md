@@ -10,15 +10,21 @@ Free **video player for Mac** (macOS 26, Apple Silicon): plays **MKV, MP4, AVI, 
 
 > STRÖM downloads, BÜHNE plays. The two apps are built as a pair and share one look. BÜHNE is free, with no time limit and no paid "Plus" version.
 
-## Features
-- Plays MP4, M4V and MOV natively (AVFoundation); MKV, AVI and everything else through libmpv. Hardware decoding.
-- One-line floating control bar: drag it to six positions; it sheds parts as the window shrinks, down to three buttons.
-- Playback position is remembered per file; reopening continues where you stopped.
-- Playlist from a folder (video files only), optionally on the control bar.
-- Speed 0.5–3×, audio and subtitle tracks, aspect, crop, rotation, black-bar detection, picture-in-picture.
-- Liquid Glass look, light / dark / auto, adjustable glass opacity.
-- Interface in 6 languages: English (default), Deutsch, Français, Italiano, Русский, Español.
-- Keyboard: Space, ← → seek 10 s, ↑ ↓ volume, F full screen, M mute, [ ] speed, A / S audio / subtitle track, ⌘O open, ⌘, settings.
+![BÜHNE playing a video](docs/screenshot-video.png)
+
+![BÜHNE with the settings panel open](docs/screenshot-settings.png)
+
+## Main features
+- **Plays everything.** MP4, M4V and MOV natively (AVFoundation); MKV, AVI, HEVC / H.265 and the rest through libmpv. Hardware decoding.
+- **One-line floating control bar.** Drag it to six positions; it sheds parts as the window shrinks, down to three buttons.
+- **Always-on-top floating window** and picture-in-picture.
+- **Remembers where you stopped.** Playback position is saved per file; reopening continues from there.
+- **Playlist from a folder** (video files only), optionally on the control bar.
+- **Speed 0.5–3×**, audio and subtitle tracks, aspect, crop, rotation, black-bar detection.
+- **Liquid Glass look.** Light, dark or auto; adjustable glass transparency.
+- **6 languages.** English (default), Deutsch, Français, Italiano, Русский, Español.
+- **Keyboard control.** Space, ← → seek 10 s, ↑ ↓ volume, F full screen, M mute, [ ] speed, A / S audio / subtitle track, ⌘O open, ⌘, settings.
+- **Free.** No time limit, no ads, no paid "Plus" version. Works with the STRÖM torrent client: watch while it downloads.
 
 ## Works with STRÖM
 STRÖM is a light BitTorrent client for macOS with the option to turn off seeding. Download it from [its Releases page](https://github.com/oskarreuss-create/strom/releases) — the link is also in BÜHNE's settings.
