@@ -105,9 +105,10 @@ final class InputMonitor {
         downAt = region == .video ? Date() : nil
         downScreen = region == .video ? NSEvent.mouseLocation : nil
         holdWork?.cancel()
-        if region == .video {
+        if region == .video, event.clickCount < 2 {
             let work = DispatchWorkItem { [weak self] in
-                guard let self, !self.pointerMoved() else { return }
+                // Only while the button is really still down (a lost mouse-up must not leave fast forward on).
+                guard let self, !self.pointerMoved(), NSEvent.pressedMouseButtons & 1 != 0 else { return }
                 self.apply(self.reducer.reduce(.holdDelayElapsed))
             }
             holdWork = work
@@ -235,6 +236,16 @@ final class InputMonitor {
             if command == .endRewind { stopRewind() }
             onCommand(command)
         }
+    }
+
+    /// Drop any press-and-hold state (fast forward, rewind, pending click) after a window state change.
+    func releaseHolds() {
+        confirmWork?.cancel()
+        holdWork?.cancel()
+        downAt = nil
+        downScreen = nil
+        apply(reducer.reduce(.releaseAll))
+        stopRewind()
     }
 
     private func startRewind() {

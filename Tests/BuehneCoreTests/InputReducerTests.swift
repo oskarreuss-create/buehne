@@ -152,3 +152,21 @@ private func volumeDelta(_ commands: [PlayerCommand]) -> Double? {
     for case let .adjustVolume(delta) in commands { return delta }
     return nil
 }
+
+/// Double click to full screen: if the second mouse-up is lost, the hold timer must not start fast forward or rewind.
+@Test func doubleClickNeverArmsHold() {
+    var box = InputReducer()
+    _ = box.reduce(.pointerDown(region: .video, xFraction: 0.8, clickCount: 1))
+    _ = box.reduce(.pointerUp(region: .video, xFraction: 0.8, clickCount: 1, held: 0.05))
+    let down2 = box.reduce(.pointerDown(region: .video, xFraction: 0.8, clickCount: 2))
+    #expect(down2 == [.toggleFullscreen])
+    #expect(box.reduce(.holdDelayElapsed) == [])
+}
+
+@Test func releaseAllEndsHold() {
+    var box = InputReducer()
+    _ = box.reduce(.pointerDown(region: .video, xFraction: 0.8, clickCount: 1))
+    #expect(box.reduce(.holdDelayElapsed) == [.beginFastForward])
+    #expect(box.reduce(.releaseAll) == [.endFastForward])
+    #expect(box.reduce(.releaseAll) == [])
+}

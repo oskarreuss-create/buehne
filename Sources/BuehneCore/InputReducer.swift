@@ -27,6 +27,8 @@ public enum InputEvent: Sendable, Equatable {
     case holdDelayElapsed
     case confirmClick
     case cancelClick
+    /// The window changed state (full screen, floating, focus) and the mouse-up may never arrive: drop every hold.
+    case releaseAll
     case scroll(deltaX: Double, deltaY: Double, natural: Bool, precise: Bool, ended: Bool)
     case key(PlayerKey)
 }
@@ -134,6 +136,13 @@ public struct InputReducer: Sendable, Equatable {
         case .cancelClick:
             wantsClickConfirm = false
             return []
+        case .releaseAll:
+            var commands: [PlayerCommand] = []
+            if holding { commands.append(downX < 0.5 ? .endRewind : .endFastForward) }
+            holding = false
+            downRegion = nil
+            wantsClickConfirm = false
+            return commands
         case let .scroll(deltaX, deltaY, natural, precise, ended):
             return scroll(deltaX: deltaX, deltaY: deltaY, natural: natural, precise: precise, ended: ended)
         case let .key(key):
@@ -149,6 +158,8 @@ public struct InputReducer: Sendable, Equatable {
         downRegion = region
         downX = xFraction
         if clickCount >= 2, region == .video, !settingsOpen {
+            // The window is about to change; its mouse-up may be lost. Never let this press arm a hold (fast forward / rewind).
+            downRegion = nil
             return release + [.toggleFullscreen]
         }
         return release

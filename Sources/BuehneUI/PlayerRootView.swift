@@ -107,9 +107,13 @@ public struct PlayerRootView: View {
         .onChange(of: settings.rotation) { _, _ in pushPicture() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in session.persistPosition() }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { _ in session.persistPosition() }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEnterFullScreenNotification)) { _ in isFullscreen = true }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEnterFullScreenNotification)) { _ in
+            isFullscreen = true
+            monitor.releaseHolds(); session.setHoldFastForward(false)
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didExitFullScreenNotification)) { _ in
             isFullscreen = false
+            monitor.releaseHolds(); session.setHoldFastForward(false)
             if floatAfterFullscreenExit {
                 floatAfterFullscreenExit = false
                 settings.floating = true
@@ -493,6 +497,7 @@ public struct PlayerRootView: View {
             session.toggleMute()
             showVolumeHUD()
         case .toggleFullscreen:
+            monitor.releaseHolds(); session.setHoldFastForward(false)
             let native = NSApp.keyWindow?.styleMask.contains(.fullScreen) == true
             if settings.floating && !native {
                 // The floating cap blocks native full screen: drop it, let the window grow back, then go full screen.
