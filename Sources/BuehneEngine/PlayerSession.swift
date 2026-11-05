@@ -39,6 +39,7 @@ public final class PlayerSession: ObservableObject {
         let generation = openGeneration
         engine?.close()
         engine = nil
+        startStreamLimit(for: url)
         tracks = .empty
         secondarySubtitleID = nil
         mediaKey = nil
@@ -88,6 +89,33 @@ public final class PlayerSession: ObservableObject {
         }
     }
 
+    // MARK: Video that is still downloading (STRÖM): never jump past the downloaded part.
+
+    /// Latest second the viewer may jump to while a stream is incomplete; nil for ordinary files.
+    @Published public private(set) var streamAllowed: TimeInterval?
+    private var streamTask: Task<Void, Never>?
+
+    private func startStreamLimit(for url: URL) {
+        streamTask?.cancel()
+        streamTask = nil
+        streamAllowed = nil
+        guard let limit = StreamLimit(streamURL: url) else { return }
+        streamAllowed = 0   // until the first answer arrives, no forward jumps
+        streamTask = Task { [weak self] in
+            while !Task.isCancelled {
+                if let (data, _) = try? await URLSession.shared.data(from: limit.statusURL),
+                   let status = try? JSONDecoder().decode(StreamLimit.Status.self, from: data) {
+                    guard let self else { return }
+                    let duration = self.snapshot.duration ?? 0
+                    let allowed = StreamLimit.allowedTime(status, duration: duration)
+                    if allowed.isInfinite { self.streamAllowed = nil; return }
+                    self.streamAllowed = allowed
+                }
+                try? await Task.sleep(for: .seconds(1))
+            }
+        }
+    }
+
     public func togglePlay() {
         guard let engine else { return }
         if snapshot.phase == .playing {
@@ -108,7 +136,11 @@ public final class PlayerSession: ObservableObject {
     public func seek(to time: TimeInterval) {
         guard let engine else { return }
         let upper = snapshot.duration ?? time
-        engine.seek(to: min(max(0, time), max(upper, 0)))
+        var target = min(max(0, time), max(upper, 0))
+        if let allowed = streamAllowed {
+            target = StreamLimit.clamp(target, current: snapshot.currentTime, allowed: allowed)
+        }
+        engine.seek(to: target)
         snapshot = engine.snapshot()
         savePosition(force: true)
     }

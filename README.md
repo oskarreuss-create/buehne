@@ -2,7 +2,7 @@
 
 [English](README.md) · [Русский](README.ru.md)
 
-**A light, beautiful video player for macOS — the companion of [STRÖM](https://github.com/oskarreuss-create/strom).**
+**A light, beautiful, native video player for macOS — the companion of [STRÖM](https://github.com/oskarreuss-create/strom).**
 
 > STRÖM downloads, BÜHNE plays. The two apps are built as a pair and share one look. BÜHNE is free, with no time limit and no paid "Plus" version.
 
@@ -18,6 +18,8 @@
 
 ## Works with STRÖM
 STRÖM is a light BitTorrent client for macOS with the option to turn off seeding. Download it from [its Releases page](https://github.com/oskarreuss-create/strom/releases) — the link is also in BÜHNE's settings.
+
+Watch while it downloads: press Play in STRÖM and BÜHNE opens the video as it arrives. You cannot jump past the part that has already been downloaded.
 
 ## Requirements
 macOS 26 or later, Apple Silicon, and [mpv](https://mpv.io) from Homebrew:

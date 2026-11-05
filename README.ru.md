@@ -2,7 +2,7 @@
 
 [English](README.md) · [Русский](README.ru.md)
 
-**Лёгкий и красивый видеоплеер для macOS — пара к торрент-клиенту [STRÖM](https://github.com/oskarreuss-create/strom).**
+**Лёгкий, красивый и нативный видеоплеер для macOS — пара к торрент-клиенту [STRÖM](https://github.com/oskarreuss-create/strom).**
 
 > STRÖM скачивает, BÜHNE проигрывает. Две программы сделаны как пара и выглядят одинаково. BÜHNE бесплатен, без ограничения по времени и без платной версии «Plus».
 
@@ -18,6 +18,8 @@
 
 ## Работает в паре со STRÖM
 STRÖM — лёгкий BitTorrent-клиент для macOS с возможностью отключить раздачу. Скачать: [страница Releases](https://github.com/oskarreuss-create/strom/releases). Ссылка есть и в настройках BÜHNE.
+
+Смотреть во время загрузки: нажмите Play в STRÖM, и BÜHNE откроет видео по мере скачивания. Перематывать дальше уже скачанной части нельзя.
 
 ## Требования
 macOS 26 или новее, Apple Silicon и [mpv](https://mpv.io) из Homebrew:
