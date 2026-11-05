@@ -6,7 +6,10 @@ import SwiftUI
 
 final class BuehneAppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { !FirstRunController.shared.needed }
-    func applicationDidFinishLaunching(_ notification: Notification) { InstallHelper.ejectInstallerDisk() }
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        InstallHelper.ejectInstallerDisk()
+        InstallHelper.repairShortcutIcons()
+    }
 }
 
 @main

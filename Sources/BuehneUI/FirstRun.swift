@@ -33,6 +33,29 @@ public enum InstallHelper {
         } catch { return error.localizedDescription }
     }
 
+
+    /// macOS rewrites an alias when its app is replaced (a reinstall), which drops the custom icon and the shortcut
+    /// shows the plain, system-tinted app icon (grey). On every launch from the final place, find shortcuts on the
+    /// desktop that point at this app and put the glass icon back where it is missing.
+    public static func repairShortcutIcons() {
+        let path = Bundle.main.bundlePath
+        guard !path.hasPrefix("/Volumes/"), !path.contains("AppTranslocation"),
+              let icon = Bundle.main.url(forResource: "BUEHNE-icon-glass", withExtension: "icns").flatMap({ NSImage(contentsOf: $0) }),
+              let desktop = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first,
+              let items = try? FileManager.default.contentsOfDirectory(at: desktop, includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey]) else { return }
+        for item in items {
+            let values = try? item.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
+            guard values?.isRegularFile == true, let size = values?.fileSize, size > 0, size < 16_384, item.pathExtension.isEmpty else { continue }
+            // Already has its own icon (resource fork present): leave it.
+            if getxattr(item.path, "com.apple.ResourceFork", nil, 0, 0, XATTR_NOFOLLOW) > 0 { continue }
+            guard let data = try? URL.bookmarkData(withContentsOf: item) else { continue }
+            var stale = false
+            guard let target = try? URL(resolvingBookmarkData: data, options: [.withoutUI, .withoutMounting], relativeTo: nil, bookmarkDataIsStale: &stale),
+                  target.standardizedFileURL.path == Bundle.main.bundleURL.standardizedFileURL.path else { continue }
+            _ = NSWorkspace.shared.setIcon(icon, forFile: item.path, options: [])
+        }
+    }
+
     /// After the app was dragged into Applications and started from there, the installer disk is no longer needed:
     /// eject it. Only the exact installer volume is touched (name BÜHNE holding BÜHNE.app and the Applications link).
     public static func ejectInstallerDisk() {
