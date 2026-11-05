@@ -58,10 +58,17 @@ public final class FirstRunController: ObservableObject {
     public func present() {
         guard needed, window == nil else { return }
         let view = FirstRunView(onFinish: { [weak self] in self?.finish() }, onDecline: { NSApp.terminate(nil) })
-        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 560, height: 520), styleMask: [.titled, .closable, .fullSizeContentView], backing: .buffered, defer: false)
+        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 440, height: 380), styleMask: [.titled, .closable, .fullSizeContentView], backing: .buffered, defer: false)
         w.titleVisibility = .hidden; w.titlebarAppearsTransparent = true
         w.isReleasedWhenClosed = false
-        w.contentView = NSHostingView(rootView: view)
+        let glass = NSVisualEffectView(frame: w.contentRect(forFrameRect: w.frame))
+        glass.material = .popover; glass.blendingMode = .behindWindow; glass.state = .active
+        let host = NSHostingView(rootView: view)
+        host.translatesAutoresizingMaskIntoConstraints = false
+        glass.addSubview(host)
+        NSLayoutConstraint.activate([host.leadingAnchor.constraint(equalTo: glass.leadingAnchor), host.trailingAnchor.constraint(equalTo: glass.trailingAnchor), host.topAnchor.constraint(equalTo: glass.topAnchor), host.bottomAnchor.constraint(equalTo: glass.bottomAnchor)])
+        w.contentView = glass
+        w.isOpaque = false; w.backgroundColor = .clear; w.alphaValue = 0.96
         w.center()
         closeObserver = NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: w, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { if self?.finished == false { NSApp.terminate(nil) } }
@@ -87,17 +94,21 @@ public struct FirstRunGate<Content: View>: View {
         if controller.needed {
             Color.clear.background(WindowVeil()).onAppear { controller.present() }
         } else {
-            content().background(WindowVeil(hidden: false))
+            content().background(WindowVeil(veiled: false))
         }
     }
 }
 
+private final class VeilView: NSView {
+    var veiled = true { didSet { apply() } }
+    override func viewDidMoveToWindow() { super.viewDidMoveToWindow(); apply() }
+    func apply() { window?.alphaValue = veiled ? 0 : 1; window?.ignoresMouseEvents = veiled }
+}
+
 private struct WindowVeil: NSViewRepresentable {
-    var hidden = true
-    func makeNSView(context: Context) -> NSView { NSView() }
-    func updateNSView(_ view: NSView, context: Context) {
-        DispatchQueue.main.async { view.window?.alphaValue = hidden ? 0 : 1; view.window?.ignoresMouseEvents = hidden }
-    }
+    var veiled = true
+    func makeNSView(context: Context) -> VeilView { let v = VeilView(); v.veiled = veiled; return v }
+    func updateNSView(_ view: VeilView, context: Context) { view.veiled = veiled }
 }
 
 struct FirstRunView: View {
@@ -121,7 +132,7 @@ struct FirstRunView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 10) {
             switch step {
             case 1: welcome
             case 2: terms
@@ -129,21 +140,21 @@ struct FirstRunView: View {
             default: readme
             }
         }
-        .padding(28)
-        .frame(width: 560, height: 520)
-        .font(.system(size: 13))
+        .padding(.horizontal, 24).padding(.top, 30).padding(.bottom, 20)
+        .frame(width: 440, height: 380)
+        .font(.system(size: 12))
     }
 
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
-            Text("BÜHNE").font(.system(size: 30, weight: .light))
+            Text("BÜHNE").font(.system(size: 24, weight: .light))
             Spacer()
             if step > 1 { Text("\(pack.step) \(step)/4").font(.system(size: 11)).foregroundStyle(.secondary) }
         }
     }
 
     private var welcome: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 14) {
             header
             Divider().opacity(0.4)
             Text(pack.language).font(.system(size: 13)).foregroundStyle(.secondary)
@@ -159,16 +170,16 @@ struct FirstRunView: View {
     }
 
     private var terms: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 10) {
             header
-            Text(pack.termsTitle).font(.system(size: 20, weight: .light))
+            Text(pack.termsTitle).font(.system(size: 16, weight: .light))
             Divider().opacity(0.4)
             ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 10) {
                     ForEach(Array(pack.terms.enumerated()), id: \.offset) { _, section in
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(section.0).font(.system(size: 13, weight: .medium))
-                            Text(section.1).font(.system(size: 12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                            Text(section.0).font(.system(size: 12, weight: .medium))
+                            Text(section.1).font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                         }
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading).padding(.trailing, 8)
@@ -183,13 +194,13 @@ struct FirstRunView: View {
     }
 
     private var license: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 10) {
             header
-            Text(pack.licenseTitle).font(.system(size: 20, weight: .light))
+            Text(pack.licenseTitle).font(.system(size: 16, weight: .light))
             Text(pack.licenseNote).font(.system(size: 11)).foregroundStyle(.secondary)
             Divider().opacity(0.4)
             ScrollView {
-                Text(licenseText()).font(.system(size: 11, design: .monospaced)).textSelection(.enabled)
+                Text(licenseText()).font(.system(size: 10, design: .monospaced)).textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading).padding(.trailing, 8)
             }
             Divider().opacity(0.4)
@@ -202,16 +213,16 @@ struct FirstRunView: View {
     }
 
     private var readme: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 10) {
             header
-            Text(pack.readmeTitle).font(.system(size: 20, weight: .light))
+            Text(pack.readmeTitle).font(.system(size: 16, weight: .light))
             Divider().opacity(0.4)
             ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 10) {
                     ForEach(Array(pack.readme.enumerated()), id: \.offset) { _, section in
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(section.0).font(.system(size: 13, weight: .medium))
-                            Text(section.1).font(.system(size: 12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                            Text(section.0).font(.system(size: 12, weight: .medium))
+                            Text(section.1).font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                         }
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading).padding(.trailing, 8)
