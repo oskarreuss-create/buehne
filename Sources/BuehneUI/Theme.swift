@@ -11,6 +11,8 @@ enum BuehneLayout {
     static let cardHeight: CGFloat = 620
     static let cardPadding: CGFloat = 24
     static let cornerRadius: CGFloat = 24
+    /// The welcome window is one big rounded card with no transparent margins around it.
+    static let welcomeRadius: CGFloat = 44
     static let rowHeight: CGFloat = 32
 }
 

@@ -170,6 +170,7 @@ struct SettingsCard: View {
                     .font(BuehneFont.regular(13))
                     .foregroundStyle(Color(nsColor: .systemBlue))
                 }
+                .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
             }
             .padding(10)

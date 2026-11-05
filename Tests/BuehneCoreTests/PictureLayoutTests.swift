@@ -43,7 +43,7 @@ import Testing
 
 @Test func openingWindowIsSmallAndVideoCapsAtSixtyPercent() {
     #expect(WindowGeometry.emptyWidth == 440)
-    #expect(WindowGeometry.emptyHeight == 290)
+    #expect(WindowGeometry.emptyHeight == 174)
     let fitted = WindowGeometry.openingSize(videoWidth: 4000, videoHeight: 2000, screenWidth: 1440, screenHeight: 900)
     #expect(fitted?.width == 864)
     #expect(fitted?.height == 432)

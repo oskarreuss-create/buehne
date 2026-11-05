@@ -50,7 +50,15 @@ struct WindowChrome: NSViewRepresentable {
         window.backgroundColor = .clear
         window.isOpaque = false
         window.hasShadow = true
-        window.styleMask.insert(.fullSizeContentView)
+        // The welcome card is rounder than any system window corner, and the system frame draws a glassy
+        // rim at its own corner radius behind the card. So the welcome state is a borderless window; once a
+        // video is loaded the window is a normal titled one again (full screen needs it).
+        let welcome = !(videoWidth > 1 && videoHeight > 1)
+        if !window.styleMask.contains(.fullScreen), window.styleMask.contains(.titled) == welcome {
+            window.styleMask = welcome
+                ? [.borderless, .resizable]
+                : [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
+        }
         window.isReleasedWhenClosed = false
         window.level = alwaysOnTop ? .floating : .normal
         window.acceptsMouseMovedEvents = true
@@ -81,6 +89,10 @@ struct WindowChrome: NSViewRepresentable {
             if !keepOffscreen, !CommandLine.arguments.contains("--proof-offscreen") { window.center() }
         }
         applyFloatingFrame(window, coordinator: coordinator, aspect: ratio)
+        // The shadow is cut from the window's alpha. Rebuild it once the card has drawn,
+        // or it keeps the system corner shape and shows as a glassy rim around the rounded card.
+        DispatchQueue.main.async { window.invalidateShadow() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { window.invalidateShadow() }
         if keepOffscreen {
             window.alphaValue = 0
             window.ignoresMouseEvents = true

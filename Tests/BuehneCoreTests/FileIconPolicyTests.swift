@@ -33,15 +33,19 @@ import Testing
     #expect(!FileIconPolicy.isDataless(downloadingStatusNotDownloaded: false, allocatedBytes: 40, logicalBytes: 40))
 }
 
-@Test func defaultFoldersNameTheFourRootsAndDoNotOpenThem() {
+@Test func noFolderIsScannedByDefaultAndLegacyListMigratesToEmpty() {
     let home = URL(fileURLWithPath: "/tmp/buehne-icon-home", isDirectory: true)
-    let paths = FileIconPolicy.defaultFolders(home: home).map(\.path)
-    #expect(paths == [
+    #expect(FileIconPolicy.defaultFolders(home: home).isEmpty)
+    let legacy = FileIconPolicy.legacyDefaultFolders(home: home).map(\.path)
+    #expect(legacy == [
         "/tmp/buehne-icon-home/Downloads",
         "/tmp/buehne-icon-home/Movies",
         "/tmp/buehne-icon-home/Documents/Ström",
         "/tmp/buehne-icon-home/Desktop",
     ])
+    #expect(FileIconPolicy.migrated(stored: legacy, home: home).isEmpty)
+    #expect(FileIconPolicy.migrated(stored: ["/tmp/buehne-icon-home/Movies"], home: home).isEmpty)
+    #expect(FileIconPolicy.migrated(stored: ["/tmp/buehne-icon-home/Videos"], home: home) == ["/tmp/buehne-icon-home/Videos"])
     #expect(FileIconPolicy.concurrency == 4)
     #expect(FileIconPolicy.sizes == [1024, 512, 256, 128, 32])
 }

@@ -22,7 +22,7 @@ public enum FileIconApply {
 
     public static func folders(defaults: UserDefaults = .standard, home: URL = FileManager.default.homeDirectoryForCurrentUser) -> [URL] {
         if let stored = defaults.stringArray(forKey: foldersKey) {
-            return stored.map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath, isDirectory: true) }
+            return FileIconPolicy.migrated(stored: stored, home: home).map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath, isDirectory: true) }
         }
         return FileIconPolicy.defaultFolders(home: home)
     }

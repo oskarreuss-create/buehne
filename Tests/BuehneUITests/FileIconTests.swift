@@ -79,6 +79,7 @@ import Testing
         #expect(hasRedPixel(image, x0: 0.05, y0: 0.82, x1: 0.40, y1: 0.98), "red glow on the lower-left rim \(name)")
         #expect(alpha(image, xFraction: 0.01, yFromTop: 0.01) == 0, "margin outside the page should be clear \(name)")
         let out = root.appendingPathComponent("reference/buehne-v6-fileicon-\(name).png")
+        try? FileManager.default.createDirectory(at: out.deletingLastPathComponent(), withIntermediateDirectories: true)
         if let data = FileIconRenderer.pngData(image) {
             try data.write(to: out)
         }

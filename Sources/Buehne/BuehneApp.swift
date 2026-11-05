@@ -35,6 +35,9 @@ struct BuehneApp: App {
     var body: some Scene {
         Window("BÜHNE", id: "main") {
             PlayerRootView(session: session, launchURL: OpenContract.mediaURL(from: CommandLine.arguments))
+                // SwiftUI paints a default window backing behind the content; it shows as a glassy wedge
+                // around the rounded welcome card.
+                .containerBackground(.clear, for: .window)
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: WindowGeometry.emptyWidth, height: WindowGeometry.emptyHeight)

@@ -124,7 +124,7 @@ public final class MemoryPositionStore: PositionStore, @unchecked Sendable {
 
 public enum WindowGeometry {
     public static let emptyWidth = 440.0
-    public static let emptyHeight = 290.0
+    public static let emptyHeight = 174.0
     public static let screenCap = 0.60
 
     /// Coded frame fitted to about 60% of the screen. Nil when the coded size is unknown.

@@ -122,6 +122,7 @@ public struct PlayerRootView: View {
             ZStack {
             if showsEmptyCard {
                 emptyState
+                    .environment(\.buehneBarWidth, max(1, geo.size.width - 2 * 12))
             }
             if let osd, settings.onScreenMessages {
                 GlassPanel(radius: 100, opacity: settings.chromeOpacity, isLight: isLight) {
@@ -338,9 +339,10 @@ public struct PlayerRootView: View {
     }
 
     private var emptyState: some View {
-        GlassPanel(radius: BuehneLayout.cornerRadius, opacity: settings.glassOpacity, isLight: isLight) {
+        GlassPanel(radius: BuehneLayout.welcomeRadius, opacity: settings.glassOpacity, isLight: isLight) {
             VStack(spacing: 0) {
-                VStack(spacing: 16) {
+                Spacer(minLength: 0)
+                VStack(spacing: 10) {
                     BuehneWordmark(width: 220)
                     Text(session.snapshot.phase == .failed ? (session.snapshot.error ?? settings.text(.fileMissing)) : settings.text(.dropVideo))
                         .font(BuehneFont.regular(12))
@@ -351,14 +353,17 @@ public struct PlayerRootView: View {
                         .buttonStyle(.borderedProminent)
                         .accessibilityLabel(settings.text(.open))
                 }
-                .padding(.top, 28)
                 .padding(.horizontal, 28)
-                .padding(.bottom, 4)
+                Spacer(minLength: 0)
                 barControls
+                    .padding(.bottom, 10)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(maxWidth: BuehneLayout.controlWidth)
-        .background(WindowFrameReader { monitor.controlFrame = $0 })
+        .clipShape(RoundedRectangle(cornerRadius: BuehneLayout.welcomeRadius, style: .continuous))
+        .background(WindowDragArea())
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .ignoresSafeArea()
     }
 
     private var windowAspect: Double {

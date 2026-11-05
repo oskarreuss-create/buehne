@@ -45,14 +45,25 @@ public enum FileIconPolicy {
         return nil
     }
 
-    /// Default scan roots. The Ström entry is only a path string here.
-    public static func defaultFolders(home: URL) -> [URL] {
+    /// No folder is scanned until the user adds one: touching Downloads, Movies or Documents
+    /// at launch triggers macOS privacy prompts.
+    public static func defaultFolders(home: URL) -> [URL] { [] }
+
+    /// The roots earlier builds scanned by default. A stored list equal to this is migrated to empty.
+    public static func legacyDefaultFolders(home: URL) -> [URL] {
         [
             home.appendingPathComponent("Downloads", isDirectory: true),
             home.appendingPathComponent("Movies", isDirectory: true),
             home.appendingPathComponent("Documents", isDirectory: true).appendingPathComponent("Ström", isDirectory: true),
             home.appendingPathComponent("Desktop", isDirectory: true),
         ]
+    }
+
+    /// Drops the roots earlier builds scanned by default (the folder list is not editable in the UI,
+    /// so any of them is a leftover, not a choice). Other stored folders stay.
+    public static func migrated(stored: [String], home: URL) -> [String] {
+        let legacy = Set(legacyDefaultFolders(home: home).map(\.path))
+        return stored.filter { !legacy.contains(($0 as NSString).expandingTildeInPath) }
     }
 
     public static func isDataless(downloadingStatusNotDownloaded: Bool, allocatedBytes: Int?, logicalBytes: Int?) -> Bool {

@@ -55,7 +55,7 @@ public final class BuehneSettings: ObservableObject {
         playlistFolders = defaults.stringArray(forKey: "buehne.playlistFolders") ?? []
         playlistOnBar = defaults.object(forKey: "buehne.playlistOnBar") as? Bool ?? false
         if let storedFolders = defaults.stringArray(forKey: FileIconApply.foldersKey) {
-            iconFolders = storedFolders
+            iconFolders = FileIconPolicy.migrated(stored: storedFolders, home: FileManager.default.homeDirectoryForCurrentUser)
         } else {
             iconFolders = FileIconPolicy.defaultFolders(home: FileManager.default.homeDirectoryForCurrentUser).map(\.path)
         }
