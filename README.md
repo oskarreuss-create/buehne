@@ -4,6 +4,10 @@
 
 **A light, beautiful, native video player for macOS — the companion of [STRÖM](https://github.com/oskarreuss-create/strom).**
 
+![BÜHNE video player and STRÖM torrent client for macOS](docs/social-preview.png)
+
+Free **video player for Mac** (macOS 26, Apple Silicon): plays **MKV, MP4, AVI, HEVC / H.265, HDR** with hardware decoding, subtitles and audio tracks, a floating always-on-top window and a Liquid Glass look. Native Swift / SwiftUI app built on **libmpv**, an alternative to VLC, IINA and QuickTime for people who want a light, quiet **mpv player for macOS**. Works with the **STRÖM torrent client** so you can **watch torrents while they download**.
+
 > STRÖM downloads, BÜHNE plays. The two apps are built as a pair and share one look. BÜHNE is free, with no time limit and no paid "Plus" version.
 
 ## Features
