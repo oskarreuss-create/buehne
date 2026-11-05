@@ -36,13 +36,11 @@ func render(_ px: Int) -> CGImage {
     // frosted glass body: brighter at the top, clearer at the bottom
     clipFill(body, [col(0xFFFFFF, 0.50), col(0xB4C0E0, 0.34), col(0x7C8CB8, 0.46)], from: P(0, 60), to: P(0, 690))
     // inner glow near the edge and a rim
-    c.saveGState(); c.addPath(body); c.clip(); c.addPath(body); c.setStrokeColor(col(0xFFFFFF, 0.55)); c.setLineWidth(26); c.setLineJoin(.round); c.strokePath(); c.restoreGState()
-    c.addPath(body); c.setStrokeColor(col(0xFFFFFF, 0.97)); c.setLineWidth(7); c.setLineJoin(.round); c.strokePath()
+    c.saveGState(); c.addPath(body); c.clip(); c.addPath(body); c.setStrokeColor(col(0xFFFFFF, 0.16)); c.setLineWidth(18); c.setLineJoin(.round); c.strokePath(); c.restoreGState()
     // top-left highlight
     c.saveGState(); c.addPath(body); c.clip(); c.addEllipse(in: CGRect(x: -120, y: -200, width: 760, height: 420)); c.setFillColor(col(0xFFFFFF, 0.18)); c.fillPath(); c.restoreGState()
     // black glass cap (the mark's cap is black), thin light rim
     clipFill(cap, [col(0x2A2C33, 0.96), col(0x050506, 0.98)], from: P(0, 0), to: P(0, 275))
-    c.addPath(cap); c.setStrokeColor(col(0xFFFFFF, 0.80)); c.setLineWidth(5); c.setLineJoin(.round); c.strokePath()
     // red flag
     c.saveGState(); c.setShadow(offset: CGSize(width: 0, height: -6 * s), blur: 12 * s, color: col(0x600008, 0.35))
     clipFill(sweep, [col(0xF2222E), col(0xD3000F)], from: P(243, 540), to: P(950, 694)); c.restoreGState()
