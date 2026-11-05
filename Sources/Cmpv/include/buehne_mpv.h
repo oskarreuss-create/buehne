@@ -21,6 +21,7 @@ int buehne_mpv_render_linear(buehne_mpv *box, int width, int height, void *rgba1
 int buehne_mpv_render_surface(buehne_mpv *box, int width, int height, void **surface, char *err, int errlen);
 int buehne_mpv_property(buehne_mpv *box, const char *name, char *buf, int len);
 int buehne_mpv_set(buehne_mpv *box, const char *name, const char *value);
+int buehne_mpv_take_tracks_dirty(buehne_mpv *box);
 int buehne_mpv_track_json(buehne_mpv *box, char *buf, int len);
 
 #endif

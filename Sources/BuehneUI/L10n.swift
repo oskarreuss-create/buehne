@@ -12,6 +12,7 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case minimize, closeWindow, fullScreen, alwaysOnTop, openFile
     case playlist, playlistOnBar
     case companionTitle, companionBody, companionLink
+    case notDownloaded
 }
 
 public enum L10n {

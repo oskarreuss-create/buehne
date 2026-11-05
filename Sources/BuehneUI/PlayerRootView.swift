@@ -123,6 +123,7 @@ public struct PlayerRootView: View {
             }
         }
         .onChange(of: showSettings) { _, open in if open { session.setHoldFastForward(false) } }
+        .onChange(of: session.limitNotices) { _, _ in flash(settings.text(.notDownloaded)) }
         .onOpenURL { url in
             guard let media = OpenContract.mediaURL(fromLaunchURL: url) else { return }
             Task { await session.open(url: media) }

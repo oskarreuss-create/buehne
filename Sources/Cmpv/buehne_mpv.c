@@ -29,7 +29,19 @@ struct buehne_mpv {
     int scan_w;
     int scan_h;
     int presented;
+    /* Latest values delivered by mpv events. mpv_get_property waits for the core, which is busy during a seek;
+       reading it on the UI thread froze the picture, the timer and the slider while the sound went on. */
+    double time_pos;
+    double duration;
+    double speed;
+    double ao_volume;
+    int64_t dwidth;
+    int64_t dheight;
+    int pause;
+    int tracks_dirty;
 };
+
+enum { OBS_TIME = 1, OBS_DURATION, OBS_PAUSE, OBS_DWIDTH, OBS_DHEIGHT, OBS_SPEED, OBS_TRACKS, REPLY_VOLUME };
 
 static void fail(char *err, int errlen, const char *text) {
     if (err && errlen > 0) snprintf(err, (size_t)errlen, "%s", text);
@@ -157,6 +169,16 @@ buehne_mpv *buehne_mpv_open_ex(const char *path, const char *peak_nits, int sile
         return NULL;
     }
     box->mpv = mpv;
+    box->speed = 1;
+    box->ao_volume = -1;
+    box->tracks_dirty = 1;
+    mpv_observe_property(mpv, OBS_TIME, "time-pos", MPV_FORMAT_DOUBLE);
+    mpv_observe_property(mpv, OBS_DURATION, "duration", MPV_FORMAT_DOUBLE);
+    mpv_observe_property(mpv, OBS_PAUSE, "pause", MPV_FORMAT_FLAG);
+    mpv_observe_property(mpv, OBS_DWIDTH, "dwidth", MPV_FORMAT_INT64);
+    mpv_observe_property(mpv, OBS_DHEIGHT, "dheight", MPV_FORMAT_INT64);
+    mpv_observe_property(mpv, OBS_SPEED, "speed", MPV_FORMAT_DOUBLE);
+    mpv_observe_property(mpv, OBS_TRACKS, "track-list", MPV_FORMAT_NONE);
     if (make_gl(box, err, errlen) < 0 || make_render(box, err, errlen) < 0) {
         buehne_mpv_close(box);
         return NULL;
@@ -188,23 +210,47 @@ void buehne_mpv_close(buehne_mpv *box) {
     free(box);
 }
 
-static void drain(mpv_handle *mpv) {
+static void drain(buehne_mpv *box) {
     while (1) {
-        mpv_event *event = mpv_wait_event(mpv, 0);
+        mpv_event *event = mpv_wait_event(box->mpv, 0);
         if (!event || event->event_id == MPV_EVENT_NONE) break;
+        if (event->event_id == MPV_EVENT_GET_PROPERTY_REPLY && event->reply_userdata == REPLY_VOLUME) {
+            mpv_event_property *reply = event->data;
+            if (event->error >= 0 && reply && reply->format == MPV_FORMAT_DOUBLE) box->ao_volume = *(double *)reply->data;
+            continue;
+        }
+        if (event->event_id != MPV_EVENT_PROPERTY_CHANGE) continue;
+        mpv_event_property *prop = event->data;
+        if (!prop) continue;
+        if (event->reply_userdata == OBS_TRACKS) {
+            box->tracks_dirty = 1;
+            continue;
+        }
+        if (prop->format == MPV_FORMAT_NONE || !prop->data) continue;
+        switch (event->reply_userdata) {
+        case OBS_TIME: box->time_pos = *(double *)prop->data; break;
+        case OBS_DURATION: box->duration = *(double *)prop->data; break;
+        case OBS_SPEED: box->speed = *(double *)prop->data; break;
+        case OBS_PAUSE: box->pause = *(int *)prop->data; break;
+        case OBS_DWIDTH: box->dwidth = *(int64_t *)prop->data; break;
+        case OBS_DHEIGHT: box->dheight = *(int64_t *)prop->data; break;
+        default: break;
+        }
     }
 }
 
 void buehne_mpv_play(buehne_mpv *box) {
     if (!box) return;
     int flag = 0;
-    mpv_set_property(box->mpv, "pause", MPV_FORMAT_FLAG, &flag);
+    box->pause = 0;
+    mpv_set_property_async(box->mpv, 0, "pause", MPV_FORMAT_FLAG, &flag);
 }
 
 void buehne_mpv_pause(buehne_mpv *box) {
     if (!box) return;
     int flag = 1;
-    mpv_set_property(box->mpv, "pause", MPV_FORMAT_FLAG, &flag);
+    box->pause = 1;
+    mpv_set_property_async(box->mpv, 0, "pause", MPV_FORMAT_FLAG, &flag);
 }
 
 void buehne_mpv_seek(buehne_mpv *box, double seconds) {
@@ -234,37 +280,34 @@ void buehne_mpv_ao_reload(buehne_mpv *box) {
 
 double buehne_mpv_get_volume(buehne_mpv *box) {
     if (!box) return -1;
-    double value = 0;
-    if (mpv_get_property(box->mpv, "ao-volume", MPV_FORMAT_DOUBLE, &value) < 0) return -1;
-    return value / 100.0;
+    /* Answer from the last request; the fresh value arrives through drain(). Never waits for the core. */
+    mpv_get_property_async(box->mpv, REPLY_VOLUME, "ao-volume", MPV_FORMAT_DOUBLE);
+    return box->ao_volume < 0 ? -1 : box->ao_volume / 100.0;
 }
 
 double buehne_mpv_get_rate(buehne_mpv *box) {
     if (!box) return -1;
-    double value = 0;
-    if (mpv_get_property(box->mpv, "speed", MPV_FORMAT_DOUBLE, &value) < 0) return -1;
-    return value;
+    return box->speed;
 }
 
 int buehne_mpv_poll(buehne_mpv *box, double *time, double *duration, int *paused, int *width, int *height, char *err, int errlen) {
     if (!box) return -1;
-    drain(box->mpv);
-    double t = 0, d = 0;
-    int64_t w = 0, h = 0;
-    int flag = 1;
-    if (mpv_get_property(box->mpv, "time-pos", MPV_FORMAT_DOUBLE, &t) < 0) t = 0;
-    if (mpv_get_property(box->mpv, "duration", MPV_FORMAT_DOUBLE, &d) < 0) d = 0;
-    mpv_get_property(box->mpv, "pause", MPV_FORMAT_FLAG, &flag);
-    mpv_get_property(box->mpv, "dwidth", MPV_FORMAT_INT64, &w);
-    mpv_get_property(box->mpv, "dheight", MPV_FORMAT_INT64, &h);
-    if (time) *time = t;
-    if (duration) *duration = d;
-    if (paused) *paused = flag;
-    if (width) *width = (int)w;
-    if (height) *height = (int)h;
+    drain(box);
+    if (time) *time = box->time_pos;
+    if (duration) *duration = box->duration;
+    if (paused) *paused = box->pause;
+    if (width) *width = (int)box->dwidth;
+    if (height) *height = (int)box->dheight;
     (void)err;
     (void)errlen;
     return 0;
+}
+
+int buehne_mpv_take_tracks_dirty(buehne_mpv *box) {
+    if (!box) return 0;
+    int dirty = box->tracks_dirty;
+    box->tracks_dirty = 0;
+    return dirty;
 }
 
 int buehne_mpv_property(buehne_mpv *box, const char *name, char *buf, int len) {

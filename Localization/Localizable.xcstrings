@@ -2,6 +2,47 @@
   "sourceLanguage": "en",
   "version": "1.0",
   "strings": {
+    "notDownloaded": {
+        "extractionState": "manual",
+        "localizations": {
+            "en": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "This part is not downloaded yet"
+                }
+            },
+            "de": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Dieser Teil ist noch nicht geladen"
+                }
+            },
+            "fr": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Cette partie n’est pas encore téléchargée"
+                }
+            },
+            "it": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Questa parte non è ancora scaricata"
+                }
+            },
+            "ru": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Эта часть ещё не скачана"
+                }
+            },
+            "es": {
+                "stringUnit": {
+                    "state": "translated",
+                    "value": "Esta parte aún no se ha descargado"
+                }
+            }
+        }
+    },
     "open": {
       "extractionState": "manual",
       "localizations": {

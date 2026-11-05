@@ -26,6 +26,8 @@ struct LensSlider: View {
     @Binding var value: Double
     var range: ClosedRange<Double>
     var tint: Color
+    /// End of the part that can be played (a video still downloading). Nil means all of it.
+    var limit: Double? = nil
     var onEditingChanged: (Bool) -> Void
     @Environment(\.buehneBarScale) private var barScale
     @State private var pointer: CGFloat?
@@ -35,6 +37,7 @@ struct LensSlider: View {
             let span = max(range.upperBound - range.lowerBound, 0.001)
             let fraction = min(1, max(0, (value - range.lowerBound) / span))
             let playX = fraction * width
+            let limitX = limit.map { min(1, max(0, ($0 - range.lowerBound) / span)) * width } ?? width
             Canvas { context, size in
                 let cursor = pointer
                 var x = CGFloat(0)
@@ -44,7 +47,7 @@ struct LensSlider: View {
                     let height = (2 + lift * 7) * barScale
                     let rect = CGRect(x: x, y: (size.height - height) / 2, width: 1.4, height: height)
                     let played = x <= playX
-                    context.fill(Path(rect), with: .color(tint.opacity(played ? 0.95 : 0.32)))
+                    context.fill(Path(rect), with: .color(tint.opacity(played ? 0.95 : (x <= limitX ? 0.32 : 0.12))))
                     x += 1
                 }
                 let radius: CGFloat = (cursor == nil ? 3.5 : 8) * barScale
@@ -72,7 +75,7 @@ struct LensSlider: View {
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { gesture in
-                        let x = min(max(gesture.location.x, 0), width)
+                        let x = min(max(gesture.location.x, 0), limitX)
                         pointer = x
                         value = range.lowerBound + (x / width) * span
                         onEditingChanged(true)

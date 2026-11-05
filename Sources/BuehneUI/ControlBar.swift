@@ -60,10 +60,11 @@ struct ControlBar: View {
                         LensSlider(
                             value: Binding(
                                 get: { scrubTime ?? session.snapshot.currentTime },
-                                set: { scrubTime = $0 }
+                                set: { scrubTime = min($0, session.streamAllowed ?? $0) }
                             ),
                             range: 0...max(duration ?? 1, 0.001),
                             tint: isLight ? .black : .white,
+                            limit: session.streamAllowed,
                             onEditingChanged: { editing in
                                 onDrag(editing)
                                 if !editing, let scrubTime {

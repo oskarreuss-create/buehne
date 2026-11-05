@@ -193,7 +193,8 @@ public final class LibmpvEngine: PlaybackEngine {
         if rc == 0, let raw {
             let io = Unmanaged<IOSurface>.fromOpaque(raw).takeUnretainedValue()
             surface.present(ioSurface: io, width: targetW, height: targetH, peakNits: displayPeakNits)
-            hdrReport = signal(box)
+            // Diagnostics only. Each read waits for the mpv core, so never per frame and never during a seek.
+            if seekTarget == nil, surface.presentedFrames % 600 == 1 { hdrReport = signal(box) }
         }
         if detectBars, picture == nil, scanAttempts < 6, surface.presentedFrames > 120, surface.presentedFrames % 4 == 1 {
             scanAttempts += 1
@@ -252,7 +253,7 @@ public final class LibmpvEngine: PlaybackEngine {
     }
 
     public func tracks() -> MediaTracks {
-        reloadTracks()
+        if let box, buehne_mpv_take_tracks_dirty(box) != 0 { reloadTracks() }
         return loadedTracks
     }
 

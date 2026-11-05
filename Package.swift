@@ -44,6 +44,7 @@ let package = Package(
         ),
         .executableTarget(name: "Buehne", dependencies: ["BuehneCore", "BuehneUI"]),
         .executableTarget(name: "BuehneSelfCheck", dependencies: ["BuehneCore", "BuehneEngine", "BuehneUI"]),
+        .executableTarget(name: "BuehneSeekBench", dependencies: ["BuehneEngine"]),
         .testTarget(name: "BuehneCoreTests", dependencies: ["BuehneCore"]),
         .testTarget(name: "BuehneUITests", dependencies: ["BuehneUI"]),
     ]

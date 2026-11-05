@@ -30,12 +30,16 @@ public struct StreamLimit: Sendable, Equatable {
 
     /// Latest second the viewer may jump to. Bytes are not evenly spread over time, so a small safety margin is kept.
     /// `.infinity` means the whole file is on disk.
-    public static func allowedTime(_ status: Status, duration: TimeInterval) -> TimeInterval {
+    public static func allowedTime(_ status: Status, duration: TimeInterval, margin: Double = 0.97) -> TimeInterval {
         guard status.size > 0, duration.isFinite, duration > 0 else { return 0 }
         if status.prefix >= status.size || status.complete == true { return .infinity }
         let fraction = Double(max(0, status.prefix)) / Double(status.size)
-        return max(0, duration * fraction * 0.97)
+        return max(0, duration * fraction * margin)
     }
+
+    /// A local file has no server to hold the player back, and action scenes take more bytes per second than the average,
+    /// so the time estimate needs a wider margin (measured: 428 MB of a 10 GB film was 324 s, the plain average says 392 s).
+    public static let localMargin = 0.8
 
     /// A forward jump is cut at the limit; going back, or staying where we are, is always allowed.
     public static func clamp(_ target: TimeInterval, current: TimeInterval, allowed: TimeInterval) -> TimeInterval {

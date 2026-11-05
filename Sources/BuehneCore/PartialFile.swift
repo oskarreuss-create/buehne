@@ -6,8 +6,13 @@ import Foundation
 public enum PartialFile {
     /// Size and the length of the continuous part from byte 0. Nil for a complete file (or one we cannot read).
     public static func status(path: String) -> StreamLimit.Status? {
-        guard let attributes = try? FileManager.default.attributesOfItem(atPath: path),
-              let size = (attributes[.size] as? NSNumber)?.int64Value, size > 1_000_000 else { return nil }
+        var info = stat()
+        guard stat(path, &info) == 0, info.st_size > 1_000_000 else { return nil }
+        let size = Int64(info.st_size)
+        // A cloud-only file (iCloud) has no local data: opening and probing it would start a download and block.
+        if info.st_flags & 0x4000_0000 != 0 { return nil }   // SF_DATALESS
+        // Nearly all blocks are on disk: an ordinary complete file, nothing to probe.
+        guard Int64(info.st_blocks) * 512 < size / 100 * 98 else { return nil }
         let descriptor = open(path, O_RDONLY)
         guard descriptor >= 0 else { return nil }
         defer { close(descriptor) }

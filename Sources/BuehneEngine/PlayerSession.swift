@@ -76,7 +76,17 @@ public final class PlayerSession: ObservableObject {
                 for _ in 0..<60 {
                     if generation != openGeneration { return }
                     if let duration = next.snapshot().duration {
-                        if let target = PlaylistPolicy.resumePosition(saved: saved, duration: duration) {
+                        if var target = PlaylistPolicy.resumePosition(saved: saved, duration: duration) {
+                            // The saved spot may lie past what has been downloaded.
+                            if url.isFileURL {
+                                let path = url.path
+                                if let status = await Task.detached(priority: .utility, operation: { PartialFile.status(path: path) }).value {
+                                    target = min(target, StreamLimit.allowedTime(status, duration: duration, margin: StreamLimit.localMargin))
+                                }
+                            } else if let allowed = streamAllowed {
+                                target = min(target, allowed)
+                            }
+                            if generation != openGeneration { return }
                             next.seek(to: target)
                             snapshot = next.snapshot()
                         }
@@ -99,19 +109,25 @@ public final class PlayerSession: ObservableObject {
     /// Latest second the viewer may jump to while a stream is incomplete; nil for ordinary files.
     @Published public private(set) var streamAllowed: TimeInterval?
     private var streamTask: Task<Void, Never>?
+    private var localPartial = false
+    /// Grows each time the viewer runs into the end of the downloaded part, so the UI can say why.
+    @Published public private(set) var limitNotices = 0
 
     private func startStreamLimit(for url: URL) {
         streamTask?.cancel()
         streamTask = nil
         streamAllowed = nil
-        if url.isFileURL, PartialFile.status(path: url.path) != nil {
-            // A file that is still downloading (sparse): same rule as for a STRÖM stream.
+        if url.isFileURL {
+            // A file that is still downloading (sparse): same rule as for a STRÖM stream. The disk is asked off the main thread.
             let path = url.path
+            localPartial = false
             streamTask = Task { [weak self] in
                 while !Task.isCancelled {
-                    guard let self else { return }
-                    guard let status = PartialFile.status(path: path) else { self.streamAllowed = nil; return }
-                    self.streamAllowed = StreamLimit.allowedTime(status, duration: self.snapshot.duration ?? 0)
+                    let status = await Task.detached(priority: .utility) { PartialFile.status(path: path) }.value
+                    guard let self, !Task.isCancelled else { return }
+                    guard let status else { self.streamAllowed = nil; self.localPartial = false; return }
+                    self.localPartial = true
+                    self.streamAllowed = StreamLimit.allowedTime(status, duration: self.snapshot.duration ?? 0, margin: StreamLimit.localMargin)
                     try? await Task.sleep(for: .seconds(1))
                 }
             }
@@ -156,7 +172,9 @@ public final class PlayerSession: ObservableObject {
         let upper = snapshot.duration ?? time
         var target = min(max(0, time), max(upper, 0))
         if let allowed = streamAllowed {
+            let wanted = target
             target = StreamLimit.clamp(target, current: snapshot.currentTime, allowed: allowed)
+            if target < wanted { limitNotices += 1 }
         }
         engine.seek(to: target)
         snapshot = engine.snapshot()
@@ -288,6 +306,12 @@ public final class PlayerSession: ObservableObject {
             snapshot = next
         }
         if next.phase == .playing { savePosition(force: false) }
+        // No server holds a local file back: stop at the end of the downloaded part instead of playing into the gap.
+        if localPartial, next.phase == .playing, let allowed = streamAllowed, allowed > 0, next.currentTime >= allowed {
+            engine.pause()
+            snapshot = engine.snapshot()
+            limitNotices += 1
+        }
     }
 
     /// Called when the app quits or the window closes, so the last second is kept too.
