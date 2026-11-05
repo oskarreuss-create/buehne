@@ -85,6 +85,9 @@ struct WindowChrome: NSViewRepresentable {
                     : [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
             }
         }
+        // In full screen the system owns the frame. Re-applying aspect lock, content size or the floating frame
+        // here (the detected picture size can change at any moment) fights the animation: jerky or stuck full screen.
+        if window.styleMask.contains(.fullScreen) { return }
         window.isReleasedWhenClosed = false
         window.level = alwaysOnTop ? .floating : .normal
         window.acceptsMouseMovedEvents = true

@@ -12,6 +12,7 @@ public struct PlayerRootView: View {
     @State private var showSettings = false
     @State private var isFullscreen = false
     @State private var floatAfterFullscreenExit = false
+    @State private var fullscreenGate = FullscreenGate()
     @State private var barAnchor = BarAnchor(rawValue: UserDefaults.standard.string(forKey: BarAnchor.storageKey) ?? "") ?? .bottomCenter
     @State private var barDrag = CGSize.zero
     @State private var barDragging = false
@@ -109,10 +110,12 @@ public struct PlayerRootView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { _ in session.persistPosition() }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEnterFullScreenNotification)) { _ in
             isFullscreen = true
+            fullscreenGate.end()
             monitor.releaseHolds(); session.setHoldFastForward(false)
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didExitFullScreenNotification)) { _ in
             isFullscreen = false
+            fullscreenGate.end()
             monitor.releaseHolds(); session.setHoldFastForward(false)
             if floatAfterFullscreenExit {
                 floatAfterFullscreenExit = false
@@ -282,16 +285,7 @@ public struct PlayerRootView: View {
             scrubTime: $scrubTime,
             isLight: isLight,
             isFullscreen: isFullscreen,
-            onFloating: {
-                // A floating window carries a contentMaxSize cap; AppKit refuses native full screen under it.
-                let window = NSApp.keyWindow
-                if settings.floating && window?.styleMask.contains(.fullScreen) != true {
-                    settings.floating = false
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { window?.toggleFullScreen(nil) }
-                } else {
-                    window?.toggleFullScreen(nil)
-                }
-            },
+            onFloating: { toggleFullscreen() },
             onPip: {
                 if let message = pip.toggle() { flash(message) }
             },
@@ -484,6 +478,18 @@ public struct PlayerRootView: View {
         if settings.floating { seedFloatingHover() } else { revealControls() }
     }
 
+    private func toggleFullscreen() {
+        guard let window = playerWindow(), fullscreenGate.begin() else { return }
+        let native = window.styleMask.contains(.fullScreen)
+        if settings.floating && !native {
+            // The floating cap blocks native full screen: drop it, let the window grow back, then go full screen.
+            settings.floating = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak window] in window?.toggleFullScreen(nil) }
+        } else {
+            window.toggleFullScreen(nil)
+        }
+    }
+
     private func apply(_ command: PlayerCommand) {
         switch command {
         case .togglePlay:
@@ -498,18 +504,10 @@ public struct PlayerRootView: View {
             showVolumeHUD()
         case .toggleFullscreen:
             monitor.releaseHolds(); session.setHoldFastForward(false)
-            let native = NSApp.keyWindow?.styleMask.contains(.fullScreen) == true
-            if settings.floating && !native {
-                // The floating cap blocks native full screen: drop it, let the window grow back, then go full screen.
-                let window = NSApp.keyWindow
-                settings.floating = false
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { window?.toggleFullScreen(nil) }
-            } else {
-                NSApp.keyWindow?.toggleFullScreen(nil)
-            }
+            toggleFullscreen()
         case .exitFullscreen:
-            if NSApp.keyWindow?.styleMask.contains(.fullScreen) == true {
-                NSApp.keyWindow?.toggleFullScreen(nil)
+            if playerWindow()?.styleMask.contains(.fullScreen) == true {
+                if fullscreenGate.begin() { playerWindow()?.toggleFullScreen(nil) }
             } else if settings.floating {
                 settings.floating = false
             }
@@ -677,8 +675,14 @@ public struct PlayerRootView: View {
     private func poll() async {
         // Common run-loop modes: the picture keeps moving while a menu is tracking.
         nonisolated(unsafe) let target = session
+        nonisolated(unsafe) var tick = 0
         let timer = Timer(timeInterval: 0.008, repeats: true) { _ in
-            MainActor.assumeIsolated { target.refresh() }
+            MainActor.assumeIsolated {
+                // Playing: 125 Hz catches every new frame. Paused or idle: a 20 Hz poll is plenty and leaves the main thread free.
+                tick &+= 1
+                if target.snapshot.phase != .playing, tick % 6 != 0 { return }
+                target.refresh()
+            }
         }
         RunLoop.main.add(timer, forMode: .common)
         defer { timer.invalidate() }
@@ -694,6 +698,28 @@ public struct PlayerRootView: View {
         }
         return types
     }()
+}
+
+/// One entry point for every way into / out of full screen (button, double click, F key).
+/// AppKit ignores or garbles a second toggle while the first animation runs, so extra requests are dropped
+/// until the transition ends (or a safety timeout passes).
+@MainActor
+final class FullscreenGate {
+    private var busyUntil = Date.distantPast
+    func begin() -> Bool {
+        guard Date() >= busyUntil else { return false }
+        busyUntil = Date().addingTimeInterval(2.5)
+        return true
+    }
+    func end() { busyUntil = .distantPast }
+}
+
+/// The player's own window; never rely on key window alone (it is nil while the app is not active).
+@MainActor
+func playerWindow() -> NSWindow? {
+    if let key = NSApp.keyWindow, !(key is NSPanel) { return key }
+    if let main = NSApp.mainWindow, !(main is NSPanel) { return main }
+    return NSApp.windows.first { $0.isVisible && !($0 is NSPanel) && $0.styleMask.contains(.resizable) }
 }
 
 @MainActor
