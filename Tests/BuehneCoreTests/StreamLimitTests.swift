@@ -30,3 +30,23 @@ import Testing
     // Already past the limit: a forward jump does not move us.
     #expect(StreamLimit.clamp(60, current: 48, allowed: 45) == 48)
 }
+
+@Test func partialFileLimitsToDownloadedPart() throws {
+    let path = NSTemporaryDirectory() + "partial-\(UUID().uuidString).mkv"
+    defer { try? FileManager.default.removeItem(atPath: path) }
+    let handle = try #require(FileHandle(forWritingAtPath: { FileManager.default.createFile(atPath: path, contents: nil); return path }()))
+    try handle.write(contentsOf: Data(repeating: 7, count: 2_000_000))
+    try handle.truncate(atOffset: 100_000_000)
+    try handle.close()
+    let status = try #require(PartialFile.status(path: path))
+    #expect(status.size == 100_000_000)
+    #expect(status.prefix >= 2_000_000 && status.prefix < 20_000_000)
+    #expect(StreamLimit.allowedTime(status, duration: 1000) < 200)
+}
+
+@Test func completeFileHasNoLimit() throws {
+    let path = NSTemporaryDirectory() + "full-\(UUID().uuidString).mkv"
+    defer { try? FileManager.default.removeItem(atPath: path) }
+    FileManager.default.createFile(atPath: path, contents: Data(repeating: 1, count: 3_000_000))
+    #expect(PartialFile.status(path: path) == nil)
+}

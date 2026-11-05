@@ -104,6 +104,19 @@ public final class PlayerSession: ObservableObject {
         streamTask?.cancel()
         streamTask = nil
         streamAllowed = nil
+        if url.isFileURL, PartialFile.status(path: url.path) != nil {
+            // A file that is still downloading (sparse): same rule as for a STRÖM stream.
+            let path = url.path
+            streamTask = Task { [weak self] in
+                while !Task.isCancelled {
+                    guard let self else { return }
+                    guard let status = PartialFile.status(path: path) else { self.streamAllowed = nil; return }
+                    self.streamAllowed = StreamLimit.allowedTime(status, duration: self.snapshot.duration ?? 0)
+                    try? await Task.sleep(for: .seconds(1))
+                }
+            }
+            return
+        }
         guard let limit = StreamLimit(streamURL: url) else { return }
         streamAllowed = 0   // until the first answer arrives, no forward jumps
         streamTask = Task { [weak self] in
