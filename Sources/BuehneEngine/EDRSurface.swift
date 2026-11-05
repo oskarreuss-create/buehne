@@ -1,6 +1,7 @@
 import CoreGraphics
 import Foundation
 import IOSurface
+import AppKit
 import Metal
 import QuartzCore
 
@@ -30,6 +31,9 @@ public final class EDRSurface {
         metal.wantsExtendedDynamicRangeContent = true
         metal.isOpaque = true
         metal.framebufferOnly = true
+        // The picture keeps its own proportions when the view is a different shape (full screen): bars, never stretching.
+        metal.contentsGravity = .resizeAspect
+        metal.backgroundColor = NSColor.black.cgColor
         self.layer = metal
         let name = metal.colorspace?.name as String? ?? "nil"
         descriptionText = "format=rgba16Float edr=\(metal.wantsExtendedDynamicRangeContent ? 1 : 0) colorspace=\(name)"
