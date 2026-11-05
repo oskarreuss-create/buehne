@@ -9,7 +9,7 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/Buehne"
 cp "$ROOT/App/Info.plist" "$APP/Contents/Info.plist"
-cp "$ROOT/App/Icon/"{AppIcon,VideoDocument}.icns "$APP/Contents/Resources/"
+cp "$ROOT/App/Icon/"{AppIcon,VideoDocument,BUEHNE-icon-glass}.icns "$APP/Contents/Resources/"
 for b in "$(dirname "$BIN")"/*.bundle; do cp -R "$b" "$APP/Contents/Resources/"; done
 chmod +x "$APP/Contents/MacOS/Buehne"
 # A stable signing identity keeps macOS privacy grants across rebuilds; ad-hoc changes with every build.
