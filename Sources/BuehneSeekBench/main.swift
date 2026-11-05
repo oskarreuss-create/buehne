@@ -3,7 +3,41 @@ import Foundation
 
 // Developer tool: plays a file silently, jumps around and reports how long the main thread was blocked.
 // Usage: BuehneSeekBench /path/video.mkv 900 2400 1200 3000
+setbuf(stdout, nil)
 var args = Array(CommandLine.arguments.dropFirst())
+if args.first == "--switch" {
+    // Playlist behaviour: open one film after another, report how long the main thread stood still and when a frame appeared.
+    args.removeFirst()
+    let session = PlayerSession()
+    var last = Date()
+    var worst = 0.0
+    Task { @MainActor in
+        while true {
+            worst = max(worst, Date().timeIntervalSince(last))
+            last = Date()
+            session.refresh()
+            try? await Task.sleep(for: .milliseconds(8))
+        }
+    }
+    for round in 0..<2 {
+        for path in args {
+            worst = 0; last = Date()
+            let start = Date()
+            let before = Date()
+            await session.open(url: URL(fileURLWithPath: path))
+            let openTook = Date().timeIntervalSince(before)
+            session.setVolume(0)
+            var frame = -1.0
+            while Date().timeIntervalSince(start) < 6 {
+                try await Task.sleep(for: .milliseconds(10))
+                if frame < 0, session.presentedFrames > 0, session.snapshot.videoSize.isKnown { frame = Date().timeIntervalSince(start) }
+                if frame > 0, Date().timeIntervalSince(start) > frame + 1.5 { break }
+            }
+            print(String(format: "round %d open=%.0fms firstPicture=%.2fs worstMainStall=%.0fms t=%.1f %@", round, openTook * 1000, frame, worst * 1000, session.snapshot.currentTime, String(path.suffix(28))))
+        }
+    }
+    exit(0)
+}
 if args.first == "--session" {
     // Whole player logic: jump limit, stop at the end of the downloaded part. Prints what the viewer would get.
     args.removeFirst()

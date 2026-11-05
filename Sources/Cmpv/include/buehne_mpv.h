@@ -8,6 +8,7 @@ typedef struct buehne_mpv buehne_mpv;
 buehne_mpv *buehne_mpv_open(const char *path, const char *peak_nits, char *err, int errlen);
 buehne_mpv *buehne_mpv_open_ex(const char *path, const char *peak_nits, int silent, char *err, int errlen);
 void buehne_mpv_close(buehne_mpv *box);
+void buehne_mpv_release_current(void);
 void buehne_mpv_play(buehne_mpv *box);
 void buehne_mpv_pause(buehne_mpv *box);
 void buehne_mpv_seek(buehne_mpv *box, double seconds);

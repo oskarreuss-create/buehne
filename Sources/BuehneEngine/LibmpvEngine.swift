@@ -43,6 +43,7 @@ public final class LibmpvEngine: PlaybackEngine {
     private var cropName = "none"
     private var rotationDegrees = 0
     private var detectBars = true
+    private var openToken = 0
     public init() {}
 
     public func setDetectBars(_ enabled: Bool) {
@@ -70,17 +71,28 @@ public final class LibmpvEngine: PlaybackEngine {
 
     public func open(_ url: URL) async throws {
         close()
-        var err = [CChar](repeating: 0, count: 512)
+        openToken += 1
+        let token = openToken
         let peak = String(Int(max(203, displayPeakNits.rounded())))
-        let opened = err.withUnsafeMutableBufferPointer { buf in
-            peak.withCString { peakC in
-                buehne_mpv_open(url.isFileURL ? url.path : url.absoluteString, peakC, buf.baseAddress, Int32(buf.count))
+        let path = url.isFileURL ? url.path : url.absoluteString
+        // Creating mpv and its GL context takes a while, and a slow disk or iCloud can hold it longer: not on the main thread.
+        let result = await Task.detached(priority: .userInitiated) { () -> (BoxHandle?, String) in
+            var err = [CChar](repeating: 0, count: 512)
+            let made = err.withUnsafeMutableBufferPointer { buf in
+                peak.withCString { peakC in
+                    buehne_mpv_open(path, peakC, buf.baseAddress, Int32(buf.count))
+                }
             }
-        }
-        guard let opened else {
-            let message = String(cString: err)
-            failure = message.isEmpty ? "libmpv failed to open \(url.lastPathComponent)" : message
+            return (made.map(BoxHandle.init), String(cString: err))
+        }.value
+        guard let opened = result.0?.box else {
+            failure = result.1.isEmpty ? "libmpv failed to open \(url.lastPathComponent)" : result.1
             throw PlaybackError.openFailed(failure ?? "libmpv failed")
+        }
+        guard token == openToken else {
+            // The viewer already moved on to another film.
+            Self.closeInBackground(opened)
+            throw PlaybackError.openFailed("superseded")
         }
         box = opened
         failure = nil
@@ -318,14 +330,24 @@ public final class LibmpvEngine: PlaybackEngine {
     }
 
     public func close() {
-        if let box { buehne_mpv_close(box) }
+        openToken += 1
+        if let box { Self.closeInBackground(box) }
         self.box = nil
+        coded = VideoSize(width: 0, height: 0)
+        scanAttempts = 0
         loadedTracks = .empty
         frame = nil
         picture = nil
         surface.cropRect = CGRect(x: 0, y: 0, width: 1, height: 1)
         votes.removeAll()
         pictureSpace = VideoSize(width: 0, height: 0)
+    }
+
+    /// Shutting mpv down waits for its file reads to end, which can take as long as iCloud takes. Never on the main thread.
+    private static func closeInBackground(_ box: OpaquePointer) {
+        buehne_mpv_release_current()
+        let handle = BoxHandle(box)
+        DispatchQueue.global(qos: .utility).async { buehne_mpv_close(handle.box) }
     }
 
     private func cropFrame(_ bytes: [UInt8], width: Int, stride: Int, crop: PictureBounds) -> RenderedFrame {
@@ -413,4 +435,10 @@ public final class LibmpvEngine: PlaybackEngine {
         }
         return out
     }
+}
+
+/// An mpv box handed to a background thread. Only one thread uses it at a time.
+private struct BoxHandle: @unchecked Sendable {
+    let box: OpaquePointer
+    init(_ box: OpaquePointer) { self.box = box }
 }

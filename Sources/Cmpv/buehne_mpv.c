@@ -190,7 +190,13 @@ buehne_mpv *buehne_mpv_open_ex(const char *path, const char *peak_nits, int sile
         buehne_mpv_close(box);
         return NULL;
     }
+    /* Opened on a background thread; the render thread makes the context current itself. */
+    CGLSetCurrentContext(NULL);
     return box;
+}
+
+void buehne_mpv_release_current(void) {
+    CGLSetCurrentContext(NULL);
 }
 
 void buehne_mpv_close(buehne_mpv *box) {

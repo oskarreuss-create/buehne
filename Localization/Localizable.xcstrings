@@ -2,6 +2,47 @@
   "sourceLanguage": "en",
   "version": "1.0",
   "strings": {
+    "inCloud": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The film is in iCloud, downloading…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Film liegt in iCloud, wird geladen…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le film est dans iCloud, téléchargement…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il film è su iCloud, download in corso…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Фильм в iCloud, загружается…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La película está en iCloud, descargando…"
+          }
+        }
+      }
+    },
     "notDownloaded": {
         "extractionState": "manual",
         "localizations": {

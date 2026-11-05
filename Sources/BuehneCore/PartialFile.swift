@@ -4,6 +4,12 @@ import Foundation
 /// part of the bytes are on disk. Playing past that part freezes the picture while the sound goes on.
 /// The rule is the same as for a STRÖM stream: never let the viewer jump past what has been downloaded.
 public enum PartialFile {
+    /// The file exists only in iCloud: reading it first downloads it, which can take minutes.
+    public static func isCloudOnly(path: String) -> Bool {
+        var info = stat()
+        return stat(path, &info) == 0 && info.st_flags & 0x4000_0000 != 0   // SF_DATALESS
+    }
+
     /// Size and the length of the continuous part from byte 0. Nil for a complete file (or one we cannot read).
     public static func status(path: String) -> StreamLimit.Status? {
         var info = stat()

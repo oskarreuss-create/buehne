@@ -53,6 +53,7 @@ public final class PlayerSession: ObservableObject {
             snapshot = PlaybackSnapshot(phase: .failed, engine: nil, error: PlaybackError.fileNotFound(url.path).description(url))
             return
         }
+        if url.isFileURL, PartialFile.isCloudOnly(path: url.path) { cloudNotices += 1 }
         let route = EngineRouter.route(url)
         let next = EngineRouter.makeEngine(for: route, player: avPlayer)
         engine = next
@@ -114,6 +115,8 @@ public final class PlayerSession: ObservableObject {
     private var clockSeen: (time: TimeInterval, at: Date)?
     /// Grows each time the viewer runs into the end of the downloaded part, so the UI can say why.
     @Published public private(set) var limitNotices = 0
+    /// Grows when the chosen film has to come from iCloud first, so the UI can say why nothing is showing yet.
+    @Published public private(set) var cloudNotices = 0
 
     private func startStreamLimit(for url: URL) {
         streamTask?.cancel()
