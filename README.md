@@ -18,6 +18,8 @@ Free **video player for Mac** (macOS 26, Apple Silicon): plays **MKV, MP4, AVI, 
 - **Plays everything.** MP4, M4V and MOV natively (AVFoundation); MKV, AVI, HEVC / H.265 and the rest through libmpv. Hardware decoding.
 - **One-line floating control bar.** Drag it to six positions; it sheds parts as the window shrinks, down to three buttons.
 - **Always-on-top floating window** and picture-in-picture.
+- **Keeps the Mac awake** while a video plays (and for 30 minutes after a pause). The pointer hides with the controls.
+- **Drag the picture sideways** (also from full screen) to shrink it into a small floating window.
 - **Remembers where you stopped.** Playback position is saved per file; reopening continues from there.
 - **Playlist from a folder** (video files only), optionally on the control bar.
 - **Speed 0.5–3×**, audio and subtitle tracks, aspect, crop, rotation, black-bar detection.

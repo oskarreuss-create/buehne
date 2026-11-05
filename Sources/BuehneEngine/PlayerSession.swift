@@ -28,9 +28,14 @@ public final class PlayerSession: ObservableObject {
     private var lastSaved: TimeInterval = -1
     private var holdRateRestore: Double?
     private var muteRestore = 1.0
+    private let wakeKeeper = WakeKeeper()
+    private var wakeObserver: AnyCancellable?
 
     public init(store: (any PositionStore)? = nil) {
         self.store = store ?? UserDefaultsPositionStore()
+        wakeObserver = $snapshot.map(\.phase).removeDuplicates().sink { [wakeKeeper] phase in
+            wakeKeeper.update(phase)
+        }
     }
 
     public func open(url: URL) async {

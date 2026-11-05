@@ -33,9 +33,14 @@ import Testing
     #expect(!FileIconPolicy.isDataless(downloadingStatusNotDownloaded: false, allocatedBytes: 40, logicalBytes: 40))
 }
 
-@Test func noFolderIsScannedByDefaultAndLegacyListMigratesToEmpty() {
+@Test func downloadInProgressSparseFileIsSkipped() {
+    #expect(FileIconPolicy.isDataless(downloadingStatusNotDownloaded: false, allocatedBytes: 60_000_000, logicalBytes: 49_000_000_000))
+    #expect(!FileIconPolicy.isDataless(downloadingStatusNotDownloaded: false, allocatedBytes: 8_688_000_000, logicalBytes: 8_700_000_000))
+}
+
+@Test func onlyDownloadsIsScannedByDefaultAndLegacyListMigratesToIt() {
     let home = URL(fileURLWithPath: "/tmp/buehne-icon-home", isDirectory: true)
-    #expect(FileIconPolicy.defaultFolders(home: home).isEmpty)
+    #expect(FileIconPolicy.defaultFolders(home: home).map(\.path) == ["/tmp/buehne-icon-home/Downloads"])
     let legacy = FileIconPolicy.legacyDefaultFolders(home: home).map(\.path)
     #expect(legacy == [
         "/tmp/buehne-icon-home/Downloads",
@@ -43,8 +48,9 @@ import Testing
         "/tmp/buehne-icon-home/Documents/Ström",
         "/tmp/buehne-icon-home/Desktop",
     ])
-    #expect(FileIconPolicy.migrated(stored: legacy, home: home).isEmpty)
-    #expect(FileIconPolicy.migrated(stored: ["/tmp/buehne-icon-home/Movies"], home: home).isEmpty)
+    #expect(FileIconPolicy.migrated(stored: legacy, home: home) == ["/tmp/buehne-icon-home/Downloads"])
+    #expect(FileIconPolicy.migrated(stored: [], home: home) == ["/tmp/buehne-icon-home/Downloads"])
+    #expect(FileIconPolicy.migrated(stored: ["/tmp/buehne-icon-home/Movies"], home: home) == ["/tmp/buehne-icon-home/Downloads"])
     #expect(FileIconPolicy.migrated(stored: ["/tmp/buehne-icon-home/Videos"], home: home) == ["/tmp/buehne-icon-home/Videos"])
     #expect(FileIconPolicy.concurrency == 4)
     #expect(FileIconPolicy.sizes == [1024, 512, 256, 128, 32])

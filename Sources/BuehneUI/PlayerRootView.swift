@@ -11,6 +11,7 @@ public struct PlayerRootView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var showSettings = false
     @State private var isFullscreen = false
+    @State private var floatAfterFullscreenExit = false
     @State private var barAnchor = BarAnchor(rawValue: UserDefaults.standard.string(forKey: BarAnchor.storageKey) ?? "") ?? .bottomCenter
     @State private var barDrag = CGSize.zero
     @State private var barDragging = false
@@ -107,7 +108,13 @@ public struct PlayerRootView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in session.persistPosition() }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { _ in session.persistPosition() }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEnterFullScreenNotification)) { _ in isFullscreen = true }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didExitFullScreenNotification)) { _ in isFullscreen = false }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didExitFullScreenNotification)) { _ in
+            isFullscreen = false
+            if floatAfterFullscreenExit {
+                floatAfterFullscreenExit = false
+                settings.floating = true
+            }
+        }
         .onChange(of: showSettings) { _, open in if open { session.setHoldFastForward(false) } }
         .onOpenURL { url in
             guard let media = OpenContract.mediaURL(fromLaunchURL: url) else { return }
@@ -417,6 +424,21 @@ public struct PlayerRootView: View {
         session.displayPeakNits = 203 * max(1, headroom)
         monitor.volumeNow = { session.volume }
         monitor.onCommand = { apply($0) }
+        monitor.onVideoDragged = { event in
+            guard let window = event.window, session.snapshot.videoSize.isKnown, !showSettings else { return }
+            let mouse = NSEvent.mouseLocation
+            if isFullscreen || window.styleMask.contains(.fullScreen) {
+                // Full screen: leave it, then become the small floating window under the pointer.
+                FloatAnchor.pending = (mouse, 0.5, 0.5)
+                floatAfterFullscreenExit = true
+                window.toggleFullScreen(nil)
+                return
+            }
+            guard !settings.floating else { return }
+            let frame = window.frame
+            FloatAnchor.pending = (mouse, (mouse.x - frame.minX) / frame.width, (mouse.y - frame.minY) / frame.height)
+            settings.floating = true
+        }
         monitor.onContextMenu = { event in
             noteHover(.settings(true))
             guard let window = event.window else {
@@ -473,7 +495,10 @@ public struct PlayerRootView: View {
         case .toggleFullscreen:
             let native = NSApp.keyWindow?.styleMask.contains(.fullScreen) == true
             if settings.floating && !native {
+                // The floating cap blocks native full screen: drop it, let the window grow back, then go full screen.
+                let window = NSApp.keyWindow
                 settings.floating = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { window?.toggleFullScreen(nil) }
             } else {
                 NSApp.keyWindow?.toggleFullScreen(nil)
             }
@@ -625,8 +650,17 @@ public struct PlayerRootView: View {
             if !Task.isCancelled, !showSettings {
                 controlsVisible = false
                 syncBarHits()
+                hideCursorWhilePlaying()
             }
         }
+    }
+
+    /// The pointer fades with the controls while a video plays; any mouse movement brings both back.
+    private func hideCursorWhilePlaying() {
+        guard session.snapshot.phase == .playing, !showSettings, NSApp.isActive,
+              let window = NSApp.keyWindow ?? NSApp.mainWindow,
+              window.frame.contains(NSEvent.mouseLocation) else { return }
+        NSCursor.setHiddenUntilMouseMoves(true)
     }
 
     private func captureBarTransparency() -> Double? {

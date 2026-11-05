@@ -45,9 +45,11 @@ public enum FileIconPolicy {
         return nil
     }
 
-    /// No folder is scanned until the user adds one: touching Downloads, Movies or Documents
-    /// at launch triggers macOS privacy prompts.
-    public static func defaultFolders(home: URL) -> [URL] { [] }
+    /// Only Downloads, where STRÖM saves finished files. Movies, Documents and Desktop are not scanned:
+    /// touching them at launch triggers extra macOS privacy prompts.
+    public static func defaultFolders(home: URL) -> [URL] {
+        [home.appendingPathComponent("Downloads", isDirectory: true)]
+    }
 
     /// The roots earlier builds scanned by default. A stored list equal to this is migrated to empty.
     public static func legacyDefaultFolders(home: URL) -> [URL] {
@@ -59,16 +61,21 @@ public enum FileIconPolicy {
         ]
     }
 
-    /// Drops the roots earlier builds scanned by default (the folder list is not editable in the UI,
-    /// so any of them is a leftover, not a choice). Other stored folders stay.
+    /// Drops the roots earlier builds scanned besides Downloads (the folder list is not editable in the UI,
+    /// so they are leftovers, not a choice). Other stored folders stay; an empty result means the default.
     public static func migrated(stored: [String], home: URL) -> [String] {
-        let legacy = Set(legacyDefaultFolders(home: home).map(\.path))
-        return stored.filter { !legacy.contains(($0 as NSString).expandingTildeInPath) }
+        let downloads = home.appendingPathComponent("Downloads", isDirectory: true).path
+        let dropped = Set(legacyDefaultFolders(home: home).map(\.path)).subtracting([downloads])
+        let kept = stored.filter { !dropped.contains(($0 as NSString).expandingTildeInPath) }
+        return kept.isEmpty ? defaultFolders(home: home).map(\.path) : kept
     }
 
     public static func isDataless(downloadingStatusNotDownloaded: Bool, allocatedBytes: Int?, logicalBytes: Int?) -> Bool {
         if downloadingStatusNotDownloaded { return true }
         if let allocatedBytes, allocatedBytes == 0, (logicalBytes ?? 0) > 0 { return true }
+        // A download in progress is a sparse file: the size is final, the data is not there yet.
+        if let allocatedBytes, let logicalBytes, logicalBytes > 1_000_000,
+           Double(allocatedBytes) < Double(logicalBytes) * 0.9 { return true }
         return false
     }
 }

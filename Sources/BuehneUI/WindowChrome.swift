@@ -2,6 +2,26 @@ import AppKit
 import BuehneCore
 import SwiftUI
 
+/// Set when a sideways drag on the picture turns the window into the small floating one:
+/// the new window keeps the pointer at the same relative spot instead of jumping to the screen centre.
+@MainActor
+enum FloatAnchor {
+    static var pending: (screen: NSPoint, fx: CGFloat, fy: CGFloat)?
+
+    static func place(_ window: NSWindow) -> Bool {
+        guard let anchor = pending else { return false }
+        pending = nil
+        let size = window.frame.size
+        var origin = NSPoint(x: anchor.screen.x - anchor.fx * size.width, y: anchor.screen.y - anchor.fy * size.height)
+        if let visible = (window.screen ?? NSScreen.main)?.visibleFrame {
+            origin.x = min(max(origin.x, visible.minX), visible.maxX - size.width)
+            origin.y = min(max(origin.y, visible.minY), visible.maxY - size.height)
+        }
+        window.setFrameOrigin(origin)
+        return true
+    }
+}
+
 struct WindowChrome: NSViewRepresentable {
     var lockAspect: Bool
     var aspect: Double
@@ -131,7 +151,7 @@ struct WindowChrome: NSViewRepresentable {
             let content = window.contentRect(forFrameRect: window.frame).size
             if abs(content.width - cap.width) > 2 || abs(content.height - cap.height) > 2 {
                 window.setContentSize(NSSize(width: cap.width, height: cap.height))
-                if !keepOffscreen && !proof { window.center() }
+                if !FloatAnchor.place(window), !keepOffscreen, !proof { window.center() }
             }
             if CommandLine.arguments.contains("--press-expand"), !coordinator.loggedFloating {
                 coordinator.loggedFloating = true

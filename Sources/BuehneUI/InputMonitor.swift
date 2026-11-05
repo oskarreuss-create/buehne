@@ -8,6 +8,8 @@ import SwiftUI
 final class InputMonitor {
     var onCommand: (PlayerCommand) -> Void = { _ in }
     var onContextMenu: (NSEvent) -> Void = { _ in }
+    /// Called when a press on the picture was dragged sideways and released: the window should shrink to a floating mini window.
+    var onVideoDragged: (NSEvent) -> Void = { _ in }
     var volumeNow: () -> Double = { 1 }
     var settingsOpen = false
     var fullscreen = false
@@ -118,6 +120,10 @@ final class InputMonitor {
         holdWork?.cancel()
         let moved = pointerMoved()
         let held = downAt.map { Date().timeIntervalSince($0) } ?? 0
+        let draggedSideways = downAt != nil && downScreen.map { start in
+            let now = NSEvent.mouseLocation
+            return abs(now.x - start.x) >= 60 && abs(now.x - start.x) > abs(now.y - start.y)
+        } == true
         downAt = nil
         downScreen = nil
         let commands = reducer.reduce(.pointerUp(
@@ -129,6 +135,7 @@ final class InputMonitor {
         apply(commands)
         if moved {
             apply(reducer.reduce(.cancelClick))
+            if draggedSideways { onVideoDragged(event) }
             return event
         }
         if reducer.wantsClickConfirm {

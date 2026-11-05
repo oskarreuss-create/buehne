@@ -173,7 +173,15 @@ public final class FileIconCache: @unchecked Sendable {
 public final class FileIconService: @unchecked Sendable {
     public static let shared = FileIconService()
     private let work = DispatchQueue(label: "ch.oskarreus.buehne.fileicons", attributes: .concurrent)
-    private let gate = DispatchSemaphore(value: FileIconPolicy.concurrency)
+    /// Operations wait in the queue, not on blocked threads: a folder with hundreds of videos
+    /// must not exhaust the shared dispatch thread pool (it stalled the whole app).
+    private let decorations: OperationQueue = {
+        let queue = OperationQueue()
+        queue.name = "ch.oskarreus.buehne.fileicons.decorate"
+        queue.maxConcurrentOperationCount = FileIconPolicy.concurrency
+        queue.qualityOfService = .utility
+        return queue
+    }()
     private var stream: FSEventStreamRef?
     private let box = WatchBox()
 
@@ -251,9 +259,7 @@ public final class FileIconService: @unchecked Sendable {
     }
 
     private func enqueue(_ url: URL) {
-        work.async { [gate] in
-            gate.wait()
-            defer { gate.signal() }
+        decorations.addOperation {
             _ = FileIconApply.decorate(url: url)
         }
     }
