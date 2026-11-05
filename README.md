@@ -1,6 +1,6 @@
 # BÜHNE
 
-[English](README.md) · [Русский](README.ru.md)
+[English](README.md) · [Deutsch](README.de.md) · [Русский](README.ru.md)
 
 **A light, beautiful, native video player for macOS — the companion of [STRÖM](https://github.com/oskarreuss-create/strom).**
 

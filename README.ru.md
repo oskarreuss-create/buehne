@@ -1,6 +1,6 @@
 # BÜHNE
 
-[English](README.md) · [Русский](README.ru.md)
+[English](README.md) · [Deutsch](README.de.md) · [Русский](README.ru.md)
 
 **Лёгкий, красивый и нативный видеоплеер для macOS — пара к торрент-клиенту [STRÖM](https://github.com/oskarreuss-create/strom).**
 
