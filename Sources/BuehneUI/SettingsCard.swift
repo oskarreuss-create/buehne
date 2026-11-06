@@ -11,6 +11,14 @@ struct SettingsCard: View {
     @State private var playlistExpanded = false
     @ObservedObject private var playlistStore = PlaylistStore.shared
 
+    /// "BÜHNE 1.3.1 (5)": the version and build number of the running app.
+    static var buildLabel: String {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? "dev"
+        let build = info?["CFBundleVersion"] as? String
+        return "BÜHNE \(version)" + (build.map { " (\($0))" } ?? "")
+    }
+
     private var panel: some View {
         GlassPanel(radius: BuehneLayout.cornerRadius, opacity: settings.glassOpacity, isLight: isLight, menu: true) {
             VStack(spacing: 0) {
@@ -28,6 +36,15 @@ struct SettingsCard: View {
                     .padding(BuehneLayout.cardPadding)
                 }
                 .scrollBounceBehavior(.basedOnSize)
+                Divider().padding(.horizontal, BuehneLayout.cardPadding)
+                Text(Self.buildLabel)
+                    .font(BuehneFont.regular(11))
+                    .monospacedDigit()
+                    .opacity(0.55)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .textSelection(.enabled)
+                    .accessibilityIdentifier("buehne.build-version")
             }
         }
         .font(BuehneFont.regular(14))

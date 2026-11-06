@@ -27,6 +27,15 @@ public enum FileIconApply {
         return FileIconPolicy.defaultFolders(home: home)
     }
 
+    /// NSWorkspace.setIcon opens the file's resource fork through CarbonCore, which is not thread-safe: several icons
+    /// written at once crash the app (SIGSEGV in FSOpenResFile). Frames are grabbed in parallel, the write is one at a time.
+    private static let iconLock = NSLock()
+    static func setIconLocked(_ image: NSImage?, path: String) -> Bool {
+        iconLock.lock()
+        defer { iconLock.unlock() }
+        return NSWorkspace.shared.setIcon(image, forFile: path, options: [])
+    }
+
     public static func decorate(url: URL, defaults: UserDefaults = .standard, cache: FileIconCache = .shared, respectSetting: Bool = true) -> FileIconResult {
         let ext = url.pathExtension
         let readable = FileManager.default.isReadableFile(atPath: url.path)
@@ -46,21 +55,21 @@ public enum FileIconApply {
               let image = FileIconRenderer.nsImage(frame: frame, extension: ext) else {
             return .failed("frame")
         }
-        let ok = NSWorkspace.shared.setIcon(image, forFile: url.path, options: [])
+        let ok = setIconLocked(image, path: url.path)
         guard ok else { return .failed("setIcon") }
         cache.store(path: url.path, token: token(for: url))
         return .decorated
     }
 
     public static func remove(url: URL, cache: FileIconCache = .shared) -> Bool {
-        let ok = NSWorkspace.shared.setIcon(nil, forFile: url.path, options: [])
+        let ok = setIconLocked(nil, path: url.path)
         cache.remove(path: url.path)
         return ok
     }
 
     public static func removeAll(cache: FileIconCache = .shared) {
         for path in cache.paths() {
-            _ = NSWorkspace.shared.setIcon(nil, forFile: path, options: [])
+            _ = setIconLocked(nil, path: path)
         }
         cache.removeAll()
     }

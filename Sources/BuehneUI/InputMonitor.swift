@@ -38,7 +38,10 @@ final class InputMonitor {
     func start() {
         guard token == nil else { return }
         token = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseUp, .rightMouseDown, .scrollWheel, .keyDown]) { [weak self] event in
-            self?.handle(event) ?? event
+            // nil means "handled, swallow it". `?? event` here turned every swallowed key into a pass-through,
+            // so AppKit beeped for each key the player had already acted on.
+            guard let self else { return event }
+            return self.handle(event)
         }
     }
 

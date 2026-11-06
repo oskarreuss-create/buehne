@@ -34,7 +34,7 @@ public enum InstallHelper {
             let data = try Bundle.main.bundleURL.bookmarkData(options: .suitableForBookmarkFile)
             try URL.writeBookmarkData(data, to: target)
             if let icon = Bundle.main.url(forResource: "BUEHNE-icon-glass", withExtension: "icns").flatMap({ NSImage(contentsOf: $0) }) {
-                _ = NSWorkspace.shared.setIcon(icon, forFile: target.path, options: [])
+                _ = FileIconApply.setIconLocked(icon, path: target.path)
             }
             return nil
         } catch { return error.localizedDescription }
@@ -65,20 +65,43 @@ public enum InstallHelper {
             var stale = false
             guard let target = try? URL(resolvingBookmarkData: data, options: [.withoutUI, .withoutMounting], relativeTo: nil, bookmarkDataIsStale: &stale),
                   target.standardizedFileURL.path == Bundle.main.bundleURL.standardizedFileURL.path else { continue }
-            _ = NSWorkspace.shared.setIcon(icon, forFile: item.path, options: [])
+            _ = FileIconApply.setIconLocked(icon, path: item.path)
         }
     }
 
-    /// After the app was dragged into Applications and started from there, the installer disk is no longer needed:
-    /// eject it. Only the exact installer volume is touched (name BÜHNE holding BÜHNE.app and the Applications link).
+    /// After the app was dragged into Applications and started from there, the installer disk image is no longer needed:
+    /// eject it so it does not stay on the desktop. Only the installer volume is touched: a read-only disk under /Volumes
+    /// named BÜHNE (macOS adds " 1", " 2" when the name is taken) that holds BÜHNE.app and the Applications link.
+    /// A busy disk (Finder still showing it, Spotlight reading it) is retried for about half a minute.
     public static func ejectInstallerDisk() {
         let path = Bundle.main.bundlePath
         guard !path.hasPrefix("/Volumes/"), !path.contains("AppTranslocation") else { return }
-        let volume = URL(fileURLWithPath: "/Volumes/BÜHNE", isDirectory: true)
+        DispatchQueue.global(qos: .utility).async {
+            for attempt in 0..<12 {
+                let disks = installerDisks()
+                if disks.isEmpty { return }
+                var left = false
+                for disk in disks {
+                    do { try NSWorkspace.shared.unmountAndEjectDevice(at: disk) } catch { left = true }
+                }
+                if !left { return }
+                Thread.sleep(forTimeInterval: attempt < 3 ? 1.0 : 3.0)
+            }
+        }
+    }
+
+    static func installerDisks() -> [URL] {
         let manager = FileManager.default
-        guard manager.fileExists(atPath: volume.appendingPathComponent("BÜHNE.app").path),
-              manager.fileExists(atPath: volume.appendingPathComponent("Applications").path) else { return }
-        DispatchQueue.global(qos: .utility).async { try? NSWorkspace.shared.unmountAndEjectDevice(at: volume) }
+        let keys: [URLResourceKey] = [.volumeIsReadOnlyKey]
+        let volumes = manager.mountedVolumeURLs(includingResourceValuesForKeys: keys, options: [.skipHiddenVolumes]) ?? []
+        return volumes.filter { volume in
+            guard volume.path.hasPrefix("/Volumes/") else { return false }
+            let name = volume.lastPathComponent
+            guard name == "BÜHNE" || name.hasPrefix("BÜHNE ") else { return false }
+            guard (try? volume.resourceValues(forKeys: Set(keys)).volumeIsReadOnly) == true else { return false }
+            return manager.fileExists(atPath: volume.appendingPathComponent("BÜHNE.app").path)
+                && manager.fileExists(atPath: volume.appendingPathComponent("Applications").path)
+        }
     }
 }
 
