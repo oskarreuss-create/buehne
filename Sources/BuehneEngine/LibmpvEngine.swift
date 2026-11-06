@@ -144,7 +144,6 @@ public final class LibmpvEngine: PlaybackEngine {
             try? await Task.sleep(for: .milliseconds(120))
             guard !Task.isCancelled, let self, let box = self.box else { return }
             // A seek to the current spot empties the output queue without reloading the device.
-            SeekLog.note(String(format: "rate flush seek to %.1f", self.time))
             buehne_mpv_seek(box, self.time)
         }
     }

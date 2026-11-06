@@ -41,7 +41,7 @@ brew install mpv
 ```
 
 ## Install
-1. Download `Buehne-<version>.zip` from [Releases](../../releases) and move BÜHNE to Applications.
+1. Download `Buehne-<version>.dmg` from [Releases](../../releases), open it and drag BÜHNE onto Applications. On first launch BÜHNE asks for a language, shows the terms, the licence and a short README, and can put its icon on the desktop. (The `.zip` holds the same app.)
 2. The app is not signed with an Apple Developer ID and is not notarized, so macOS shows a warning on first launch. Open *System Settings → Privacy & Security*, find BÜHNE and click **Open Anyway**. Or run:
 
 ```bash

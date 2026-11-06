@@ -111,8 +111,6 @@ public final class PlayerSession: ObservableObject {
     @Published public private(set) var streamAllowed: TimeInterval?
     private var streamTask: Task<Void, Never>?
     private var localPartial = false
-    private var lastAskedSeek = Date.distantPast
-    private var clockSeen: (time: TimeInterval, at: Date)?
     /// Grows each time the viewer runs into the end of the downloaded part, so the UI can say why.
     @Published public private(set) var limitNotices = 0
     /// Grows when the chosen film has to come from iCloud first, so the UI can say why nothing is showing yet.
@@ -167,15 +165,13 @@ public final class PlayerSession: ObservableObject {
         snapshot = engine.snapshot()
     }
 
-    public func seek(by delta: TimeInterval, caller: String = #fileID, line: Int = #line) {
+    public func seek(by delta: TimeInterval) {
         let base = snapshot.duration.map { min(snapshot.currentTime, $0) } ?? snapshot.currentTime
-        seek(to: base + delta, caller: caller, line: line)
+        seek(to: base + delta)
     }
 
-    public func seek(to time: TimeInterval, caller: String = #fileID, line: Int = #line) {
+    public func seek(to time: TimeInterval) {
         guard let engine else { return }
-        SeekLog.note(String(format: "seek from %.1f to %.1f by %@:%d", snapshot.currentTime, time, caller, line))
-        lastAskedSeek = Date()
         let upper = snapshot.duration ?? time
         var target = min(max(0, time), max(upper, 0))
         if let allowed = streamAllowed {
@@ -305,18 +301,6 @@ public final class PlayerSession: ObservableObject {
             if nextTracks != tracks { tracks = nextTracks }
         }
         let next = engine.snapshot()
-        if next.phase == .playing {
-            // A jump of the clock that no seek asked for.
-            let now = Date()
-            if let seen = clockSeen, now.timeIntervalSince(lastAskedSeek) > 3 {
-                let moved = next.currentTime - seen.time
-                let passed = now.timeIntervalSince(seen.at) * max(next.rate, 0.1)
-                if abs(moved - passed) > 3 { SeekLog.note(String(format: "UNASKED clock %.1f -> %.1f", seen.time, next.currentTime)) }
-            }
-            clockSeen = (next.currentTime, now)
-        } else {
-            clockSeen = nil
-        }
         if next.phase != snapshot.phase
             || abs(next.currentTime - snapshot.currentTime) >= 0.25
             || next.duration != snapshot.duration
